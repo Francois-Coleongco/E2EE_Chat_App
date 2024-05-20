@@ -1,26 +1,29 @@
-import { getAuth, Auth, createUserWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import DOMPurify from 'dompurify';
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 const auth = getAuth();
-interface LoginProps {
-    auth: Auth;
-}
 
-const Login: React.FC<LoginProps> = ({ auth }) => {
+const Login = () => {
+
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
 
     function loginSubmitHandler() {
 
-        createUserWithEmailAndPassword(auth, email, password)
+        console.log(email)
+
+        const auth = getAuth();
+        signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-                // Signed up 
+                // Signed in 
                 const user = userCredential.user;
                 // ...
             })
             .catch((error) => {
                 const errorCode = error.code;
                 const errorMessage = error.message;
-                // ..
             });
-
 
     }
 
@@ -30,9 +33,9 @@ const Login: React.FC<LoginProps> = ({ auth }) => {
 
             <form method='POST' onSubmit={loginSubmitHandler}>
 
-                <input type="email" placeholder="email" />
+                <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(DOMPurify.sanitize(e.target.value))} />
                 <br />
-                <input type="password" placeholder="password" />
+                <input type="password" placeholder="password" value={password} onChange={(e) => setPassword(DOMPurify.sanitize(e.target.value))} />
                 <br />
                 <input type="submit" />
 
