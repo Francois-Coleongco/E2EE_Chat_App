@@ -1,0 +1,68 @@
+Why You Doing Dis?
+
+I want to make sure I can write safe code. I used to think that I could just whip up a buncha components and third-party libraries in a pot and serve it. Not. Good. Not a good way to think at all. I looked over my code before for my other web projects and they were all disorganized, not pretty, and i think one especially had a lot of vulnerabilities. You know which one. the fitness webapp one. ugh makes me cringe. anyways lets start this one, the RIGHT way.
+
+oh but another note is the original chatApp didnt have good security rules. the firebase rules were set in a very uhm. it was stupid TwT it was literally just checking if the user is authenticated LMAO
+
+
+Chat app
+
+SECURITY DETAILS:
+
+for privChats
+
+- isFriend
+
+- notBlocked
+
+- notBanned
+
+for groupChats:
+
+- inGroup
+
+- notBlocked
+
+- notBanned
+
+
+FOR BACKEND FIREBASE:
+
+- write only to themselves
+
+- no data regarding banning should be implemented within their own writable data... obviously.
+
+
+
+SCHEMA:
+
+- privateMessages
+
+-- DM1 (dmID, users - SHOULD ONLY BE 2 MAX - set a rule or smthign for this)
+
+--- msgID, sender, content (file, text, file and text), timestamp
+--- ...
+
+-- ...
+
+- groupMessages
+
+-- GC1 (gcID, users)
+
+--- msgID, sender, content (file, text, file and text), timestamp
+--- ...
+
+-- ...
+
+
+
+
+Additional Security Things:
+
+Configure CORS (cross origin resource sharing probably also in firebase i dunno maybe u wanna use a different framework or smthing for hosting, we'll see)
+
+
+RUN ZAP SPIDER ON THE SITE TO SEE IF THERE ARE ANY VULNS YOU MISSED
+
+
+MAKE SURE THERE ARE NO IDORS
