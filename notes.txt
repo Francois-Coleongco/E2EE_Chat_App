@@ -66,3 +66,7 @@ RUN ZAP SPIDER ON THE SITE TO SEE IF THERE ARE ANY VULNS YOU MISSED
 
 
 MAKE SURE THERE ARE NO IDORS
+
+
+
+Firebase Authentication uses JWT tokens which are stored in 

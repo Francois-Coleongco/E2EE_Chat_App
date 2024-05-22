@@ -1,49 +1,65 @@
-import { useState } from "react";
-import DOMPurify from 'dompurify';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-
-const auth = getAuth();
+import { useState, useEffect } from "react";
+//import DOMPurify from 'dompurify';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { Navigate } from "react-router-dom";
+import { auth } from "../firebase"
 
 const Login = () => {
 
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // User is signed in, see docs for a list of available properties
+            // https://firebase.google.com/docs/reference/js/auth.user
+            const uid = user.uid;
+            setUserSignedIn(true)
+        } else {
+            // User is signed out
+            // ...
+        }
+    });
+
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [userSignedIn, setUserSignedIn] = useState(false);
 
-    function loginSubmitHandler() {
-
-        console.log(email)
-
+    const signInFirebase = async (e: React.FormEvent) => {
+        e.preventDefault();
         const auth = getAuth();
-        signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                // Signed in 
-                const user = userCredential.user;
-                // ...
-            })
-            .catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
-            });
-
+        signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
+            // Signed in 
+            setUserSignedIn(true);
+            const user = userCredential.user.uid;
+            console.log(user)
+        })
     }
 
-    return (
-        <>
-            <h1>Login:</h1>
+    //console.log(userSignedIn);
 
-            <form method='POST' onSubmit={loginSubmitHandler}>
+    if (userSignedIn === false || auth.currentUser === null) {
+        return (
+            <>
+                <form onSubmit={signInFirebase}>
+                    <h1>Sign In</h1>
+                    <input placeholder="Email" required onChange={(e) => setEmail(e.target.value)} />
+                    <br />
+                    <input placeholder="Password" type="password" required onChange={(e) => setPassword(e.target.value)} />
+                    <br />
+                    <button type="submit">click to log in</button>
+                </form>
 
-                <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(DOMPurify.sanitize(e.target.value))} />
-                <br />
-                <input type="password" placeholder="password" value={password} onChange={(e) => setPassword(DOMPurify.sanitize(e.target.value))} />
-                <br />
-                <input type="submit" />
+                <a href="/signUp">dont have an account? sign up here!</a>
+            </>
+        );
+    }
+    else {
+        return (
+            <>
 
-            </form>
+                <Navigate to={"/dashboard"} />
 
-            <p>no account? sign up <a href="">here</a></p>
-        </>
-    )
+            </>
+        );
+    }
 }
 
 export default Login
