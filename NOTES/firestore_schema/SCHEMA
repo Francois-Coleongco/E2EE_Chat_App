@@ -1,0 +1,6 @@
+privateMsgs
+
+chatid => users in chat, time created => msgid => text content, timestamp
+
+
+// groupChats not MVP

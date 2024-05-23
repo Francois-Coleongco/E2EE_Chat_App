@@ -1,0 +1,70 @@
+Since this is a react app that uses firebase as a backend, I need to make sure I write good security rules in the firebase console to prevent users from accessing data that is not their own.
+
+The lower trust I have to give the user, the better.
+
+
+ALright, I need to create the schema for my chatapp before I write the rules... duh. okay imma do that
+
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.users;
+    }
+  }
+}
+
+this is a start, I am checking if the user is authenticated AND if the current user is included in the  users document (users in private chat)
+
+i've seen firebase rules for chat apps before and they dont seem to check for if the current user is allowed to see the message, so i had to write the little extension of the original rules:
+
+... && request.auth.uid in resource.data.users
+
+
+
+UPDATE
+
+https://stackoverflow.com/questions/55951645/how-to-set-firestore-security-rules-resource-data-null-value-error
+
+WHEN CHECKING RULSE USE THIS KIND OF ABSOLUTE PATH WITHOUT WILDCARDS TO CHECKING
+/privateChats/GfDbVeoZ9wqlMcFgKpFr/messages/TzJ0XNsiEjSsdBX5LbG2
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+      match /messages/{msgID} {
+      	allow read: if (request.auth != null) && request.auth.uid in resource.data.readers;
+
+      }
+    }
+  }
+}
+
+new rules
+
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+      match /messages/{msgID} {
+      	allow read: if (request.auth != null) && request.auth.uid in resource.data.readers;
+				allow update: if (request.auth != null) && request.auth.uid == resource.data.sender;
+        allow write: if (request.auth != null) && request.auth.uid in get(/databases/$(database)/documents/privateChats/$(chatID)).data.users;
+      }
+    }
+  }
+}
+
+new rules #2 
+
+
+so these updated rules should be good for all private chats now i reckon. will review later. imma code up the rest of the site >:)
+

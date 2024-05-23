@@ -1,9 +1,9 @@
 import './App.css';
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from "react-router-dom";
-import Login from './components/login';
-import SignUp from './components/signup';
+import Login from './components/auth/login';
+import SignUp from './components/auth/signup';
 import Welcome from './components/welcome';
-import Dashboard from './components/dashboard';
+import Dashboard from './components/shells/dashboard';
 
 //const analytics = getAnalytics(app);
 

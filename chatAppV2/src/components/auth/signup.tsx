@@ -1,17 +1,16 @@
-import { useState, useEffect } from "react";
-//import DOMPurify from 'dompurify';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { useState } from "react";
+import DOMPurify from 'dompurify';
+import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { Navigate } from "react-router-dom";
-import { auth } from "../firebase"
+import { auth } from "../../firebase"
 
-const Login = () => {
+const SignUp = () => {
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
             // User is signed in, see docs for a list of available properties
             // https://firebase.google.com/docs/reference/js/auth.user
-            const uid = user.uid;
-            setUserSignedIn(true)
+            setUserSignedUp(true)
         } else {
             // User is signed out
             // ...
@@ -20,29 +19,28 @@ const Login = () => {
 
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
-    const [userSignedIn, setUserSignedIn] = useState(false);
+    const [userSignedUp, setUserSignedUp] = useState(false);
 
-    const signInFirebase = async (e: React.FormEvent) => {
+    const signUpFirebase = async (e: React.FormEvent) => {
         e.preventDefault();
         const auth = getAuth();
-        signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
+        createUserWithEmailAndPassword(auth, email, password).then((userCredential) => {
             // Signed in 
-            setUserSignedIn(true);
+            setUserSignedUp(true);
             const user = userCredential.user.uid;
             console.log(user)
         })
     }
 
-    //console.log(userSignedIn);
 
-    if (userSignedIn === false || auth.currentUser === null) {
+    if (userSignedUp === false || auth.currentUser === null) {
         return (
             <>
-                <form onSubmit={signInFirebase}>
-                    <h1>Sign In</h1>
-                    <input placeholder="Email" required onChange={(e) => setEmail(e.target.value)} />
+                <form onSubmit={signUpFirebase}>
+                    <h1>Sign Up</h1>
+                    <input placeholder="Email" required onChange={(e) => setEmail(DOMPurify.sanitize(e.target.value))} />
                     <br />
-                    <input placeholder="Password" type="password" required onChange={(e) => setPassword(e.target.value)} />
+                    <input placeholder="Password" type="password" required onChange={(e) => setPassword(DOMPurify.sanitize(e.target.value))} />
                     <br />
                     <button type="submit">click to log in</button>
                 </form>
@@ -62,6 +60,4 @@ const Login = () => {
     }
 }
 
-export default Login
-
-
+export default SignUp
