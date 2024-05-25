@@ -40,7 +40,16 @@ const Login = () => {
     //     return <p>Loading...</p>; // Display a loading indicator while checking the authentication state
     // }
 
-    if (userSignedIn === false) {
+    if (userSignedIn === true) {
+        return (
+            <>
+
+                <Navigate to={"/dashboard"} />
+
+            </>
+        );
+    }
+    else {
         return (
             <>
                 <form onSubmit={signInFirebase}>
@@ -52,18 +61,10 @@ const Login = () => {
                     <button type="submit">click to log in</button>
                 </form>
 
-                <a href="/sign-up">dont have an account? sign up here!</a>
+                <p>don't have an account? sign up <a href="/sign-up">here</a>!</p>
             </>
         );
-    }
-    else {
-        return (
-            <>
 
-                <Navigate to={"/dashboard"} />
-
-            </>
-        );
     }
 }
 
