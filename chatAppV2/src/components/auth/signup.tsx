@@ -10,6 +10,22 @@ import { auth } from "../../firebase"
 import * as forge from 'node-forge';
 
 const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
+const privateKey = forge.pki.privateKeyToPem(keyPair.privateKey)
+
+console.log(keyPair)
+console.log(keyPair.publicKey)
+console.log(keyPair.privateKey)
+
+var privateKeyBlob = new Blob([privateKey], { type: 'text/plain' });
+
+// Create a download link
+var downloadLink = document.createElement('a');
+downloadLink.download = 'private_key.pem';
+downloadLink.href = URL.createObjectURL(privateKeyBlob);
+downloadLink.textContent = 'Download Private Key';
+
+// Trigger the download
+downloadLink.click();
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  https://www.honeybadger.io/blog/encryption-and-decryption-in-typescript/
 
