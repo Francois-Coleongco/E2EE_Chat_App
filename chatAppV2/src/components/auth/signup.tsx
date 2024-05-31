@@ -7,12 +7,19 @@ import DOMPurify from 'dompurify';
 import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { Navigate } from "react-router-dom";
 import { auth } from "../../firebase"
+import * as forge from 'node-forge';
+
+const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  https://www.honeybadger.io/blog/encryption-and-decryption-in-typescript/
+
 
 const SignUp = () => {
 
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [userSignedIn, setUserSignedIn] = useState(false);
+    const [userUID, setUserUID] = useState<string>('')
     // const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -34,9 +41,24 @@ const SignUp = () => {
             // Signed in 
             setUserSignedIn(true);
             const user = userCredential.user.uid;
+            setUserUID(user)
             console.log(user)
         })
+
+
+
+        // save public key to firebase account
+
+        // save private key to a file and also add it to local storage
+
+        // if the user wishes to load their private key if for example the local storage got cleared, give user instructions on how to load the file in
+
+
+
     }
+
+
+
 
     //console.log(userSignedIn);
 
