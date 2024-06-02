@@ -14,7 +14,6 @@ import { auth } from "../../firebase";
 
 import { Navigate } from "react-router-dom";
 
-// Create a download link
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  https://www.honeybadger.io/blog/encryption-and-decryption-in-typescript/
 

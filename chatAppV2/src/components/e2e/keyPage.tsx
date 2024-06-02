@@ -6,10 +6,12 @@ import { useState, useEffect } from "react";
 import { Navigate, useResolvedPath } from "react-router-dom";
 
 import { onAuthStateChanged } from "firebase/auth";
-//const db = getFirestore(app);
+const db = getFirestore(app);
 
 function KeyPage() {
     const [userSignedIn, setUserSignedIn] = useState<boolean>(false);
+    const [userUID, setUserUID] = useState<string>("");
+
     const [privKeyLink, setPrivKeyLink] = useState<string>("#");
 
     const [generatingKeyStatus, setGeneratingKeyStatus] =
@@ -21,6 +23,7 @@ function KeyPage() {
         const unsubscribe = onAuthStateChanged(auth, (usr) => {
             if (usr) {
                 setUserSignedIn(true);
+                setUserUID(usr.uid);
                 setIsLoading(false);
             } else {
                 setUserSignedIn(false);
@@ -43,12 +46,12 @@ function KeyPage() {
 
         var privateKeyBlob = new Blob([privateKey], { type: "text/plain" });
 
-        // const usersDoc = doc(db, "users", userUID);
+        const usersDoc = doc(db, "users", userUID);
 
-        // console.log(usersDoc);
-        // await setDoc(usersDoc, {
-        //     publicKey: publicKey,
-        // });
+        console.log(usersDoc);
+        await setDoc(usersDoc, {
+            publicKey: publicKey,
+        });
 
         console.log("executed create");
 
@@ -77,11 +80,7 @@ function KeyPage() {
             <>
                 <p>{generatingKeyStatus}</p>
                 <button onClick={keyGod}>Generate Private Key</button>
-                <a
-                    href={privKeyLink}
-                    download={"privatekey.pem"}
-                    onClick={keyGod}
-                >
+                <a href={privKeyLink} download={"privatekey.pem"}>
                     Download Your Private Key
                 </a>
             </>
