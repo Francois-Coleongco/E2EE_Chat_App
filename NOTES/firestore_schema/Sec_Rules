@@ -68,3 +68,50 @@ new rules #2
 
 so these updated rules should be good for all private chats now i reckon. will review later. imma code up the rest of the site >:)
 
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+      match /messages/{msgID} {
+      	allow read: if (request.auth != null) && request.auth.uid in resource.data.readers;
+				allow update: if (request.auth != null) && request.auth.uid == resource.data.sender;
+        allow write: if (request.auth != null) && request.auth.uid in get(/databases/$(database)/documents/privateChats/$(chatID)).data.users;
+      }
+    }
+    match /users/{userID} {
+    	allow read, write, update: if (request.auth != null) && (request.auth.uid == userID)
+    }
+  }
+}
+
+
+# new rules #3
+
+
+
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+      match /messages/{msgID} {
+      	allow read: if (request.auth != null) && request.auth.uid in resource.data.readers;
+				allow update: if (request.auth != null) && request.auth.uid == resource.data.sender;
+        allow write: if (request.auth != null) && request.auth.uid in get(/databases/$(database)/documents/privateChats/$(chatID)).data.users;
+      }
+    }
+    match /users/{userID} {
+    	allow read, write, delete: if (request.auth != null) && (request.auth.uid == userID)
+      allow update: if (request.auth != null)
+    }
+  }
+}
+
+# new rules #4
+
+users can update another user's document but cant write, read, or delete. need to add checks in actual code to ensure friends array cant be direclty written to without acceptance
