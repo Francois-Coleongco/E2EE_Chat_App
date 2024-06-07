@@ -1,9 +1,9 @@
-import { doc, getFirestore, setDoc } from "firebase/firestore";
+import { doc, getFirestore, setDoc, collection } from "firebase/firestore";
 import { app, auth } from "../../firebase";
 
 import * as forge from "node-forge";
-import { useState, useEffect } from "react";
-import { Navigate, useResolvedPath } from "react-router-dom";
+import { useState, useEffect, useId } from "react";
+import { Navigate } from "react-router-dom";
 
 import { onAuthStateChanged } from "firebase/auth";
 const db = getFirestore(app);
@@ -15,7 +15,7 @@ function KeyPage() {
     const [privKeyLink, setPrivKeyLink] = useState<string>("#");
 
     const [generatingKeyStatus, setGeneratingKeyStatus] =
-        useState<boolean>(false);
+        useState<string>(" ___");
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -34,7 +34,8 @@ function KeyPage() {
     }, []);
 
     const keyGod = async () => {
-        setGeneratingKeyStatus(true);
+        console.log("key?");
+        setGeneratingKeyStatus("key baking");
 
         const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
         const privateKey = forge.pki.privateKeyToPem(keyPair.privateKey);
@@ -51,6 +52,9 @@ function KeyPage() {
         console.log(usersDoc);
         await setDoc(usersDoc, {
             publicKey: publicKey,
+            friends: [],
+            pendingFriends: [],
+            incomdingFriends: [],
         });
 
         console.log("executed create");
@@ -68,7 +72,7 @@ function KeyPage() {
         // if the user wishes to load their private key if for example the local storage got cleared, give user instructions on how to load the file in
 
         setPrivKeyLink(URL.createObjectURL(privateKeyBlob));
-        setGeneratingKeyStatus(false);
+        setGeneratingKeyStatus("key generated");
     };
 
     if (isLoading === true) {
@@ -78,11 +82,16 @@ function KeyPage() {
     if (userSignedIn) {
         return (
             <>
-                <p>{generatingKeyStatus}</p>
+                <p>your key is currently {generatingKeyStatus}</p>
                 <button onClick={keyGod}>Generate Private Key</button>
+                <br />
+                <br />
                 <a href={privKeyLink} download={"privatekey.pem"}>
                     Download Your Private Key
                 </a>
+                <br />
+                <br />
+                <a href="/dashboard">go to dashboard</a>
             </>
         );
     } else {
