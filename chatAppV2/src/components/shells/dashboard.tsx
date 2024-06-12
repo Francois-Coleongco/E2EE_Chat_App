@@ -111,6 +111,10 @@ function Dashboard() {
     console.log(usrData);
     console.log(typeof usrData);
 
+    if (usrData && usrData.friends) {
+        console.log(Object.keys(usrData.friends).length);
+    }
+
     if (isLoading) {
         return <p>Loading...</p>; // Display a loading indicator while checking the authentication state
     }
@@ -133,10 +137,20 @@ function Dashboard() {
                     <button type="submit">send code</button>
                 </form>
                 add friend
-                {usrData !== undefined &&
-                    Object.keys(usrData?.pendingFriends).map((key, index) => (
-                        <li key={index}>{usrData?.pendingFriends[key]}</li>
-                    ))}
+                <br />
+                <div>
+                    <h3>your friends:</h3>
+                    {usrData !== undefined && (
+                        <>
+                            {Object.keys(usrData.friends).length === 0 && (
+                                <p>no friends LLL</p>
+                            )}
+                            {Object.keys(usrData.friends).map((key, index) => (
+                                <li key={index}>{usrData?.friends[key]}</li>
+                            ))}
+                        </>
+                    )}
+                </div>
             </>
         );
     } else {
