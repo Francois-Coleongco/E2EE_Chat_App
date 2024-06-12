@@ -4,39 +4,35 @@ I want to make sure I can write safe code. I used to think that I could just whi
 
 oh but another note is the original chatApp didnt have good security rules. the firebase rules were set in a very uhm. it was stupid TwT it was literally just checking if the user is authenticated LMAO
 
-
 Chat app
 
 SECURITY DETAILS:
 
 for privChats
 
-- isFriend
+-   isFriend
 
-- notBlocked
+-   notBlocked
 
-- notBanned
+-   notBanned
 
 for groupChats:
 
-- inGroup
+-   inGroup
 
-- notBlocked
+-   notBlocked
 
-- notBanned
-
+-   notBanned
 
 FOR BACKEND FIREBASE:
 
-- write only to themselves
+-   write only to themselves
 
-- no data regarding banning should be implemented within their own writable data... obviously.
-
-
+-   no data regarding banning should be implemented within their own writable data... obviously.
 
 SCHEMA:
 
-- privateMessages
+-   privateMessages
 
 -- DM1 (dmID, users - SHOULD ONLY BE 2 MAX - set a rule or smthign for this)
 
@@ -45,7 +41,7 @@ SCHEMA:
 
 -- ...
 
-- groupMessages
+-   groupMessages
 
 -- GC1 (gcID, users)
 
@@ -54,19 +50,26 @@ SCHEMA:
 
 -- ...
 
-
-
-
 Additional Security Things:
 
 Configure CORS (cross origin resource sharing probably also in firebase i dunno maybe u wanna use a different framework or smthing for hosting, we'll see)
 
-
 RUN ZAP SPIDER ON THE SITE TO SEE IF THERE ARE ANY VULNS YOU MISSED
-
 
 MAKE SURE THERE ARE NO IDORS
 
-
-
 Firebase Authentication uses JWT tokens
+
+{Object.keys(usrData).map((key, index) => (
+
+<div key={index}>
+{usrData[key] !== undefined && (
+<p>
+{key}
+{usrData[key]}
+</p>
+)}
+</div>
+))}
+
+mapping a object in tsx

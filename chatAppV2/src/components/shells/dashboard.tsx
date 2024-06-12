@@ -2,7 +2,15 @@ import { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { app, auth } from "../../firebase";
 import { Navigate } from "react-router-dom";
-import { arrayUnion, doc, getFirestore, updateDoc } from "firebase/firestore";
+import {
+    DocumentData,
+    arrayRemove,
+    arrayUnion,
+    doc,
+    getDoc,
+    getFirestore,
+    updateDoc,
+} from "firebase/firestore";
 import DOMPurify from "dompurify";
 
 const db = getFirestore(app);
@@ -11,7 +19,11 @@ function Dashboard() {
     const [userSignedIn, setUserSignedIn] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [userUID, setUserUID] = useState<string>("");
+
+    const [usrData, setUsrData] = useState<DocumentData | undefined>();
+
     const [pendingFriend, setPendingFriend] = useState<string>("");
+    const [incomingFriend, setIncomingFriend] = useState<string>("");
 
     const Out_Handler = () => {
         signOut(auth)
@@ -51,15 +63,53 @@ function Dashboard() {
             await updateDoc(requestedDoc, {
                 incomingFriends: arrayUnion(userUID),
             });
+            await updateDoc(usersDoc, {
+                pendingFriends: arrayUnion(pendingFriend),
+            });
         } catch (error) {
             console.log("unable to add friend");
             return false;
         }
-
-        await updateDoc(usersDoc, {
-            pendingFriends: arrayUnion(pendingFriend),
-        });
     };
+
+    const incomingHandler = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const usersDoc = doc(db, "users", userUID);
+            const requestedDoc = doc(db, "users", incomingFriend);
+            await updateDoc(requestedDoc, {
+                friends: arrayUnion(userUID),
+                pendingFriends: arrayRemove(userUID),
+            });
+            await updateDoc(usersDoc, {
+                friends: arrayUnion(incomingFriend),
+                incomingFriends: arrayRemove(incomingFriend),
+            });
+        } catch (error) {
+            console.log("unable to add friend");
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        console.log("this rendered");
+        const retrieveData = async () => {
+            try {
+                console.log("new");
+                const usersDocSnap = await getDoc(doc(db, "users", userUID));
+                console.log(usersDocSnap);
+                if (usersDocSnap.exists()) {
+                    console.log("new");
+                    setUsrData(usersDocSnap.data());
+                    console.log("got past");
+                }
+            } catch (error) {}
+        };
+        retrieveData();
+    }, [isLoading]);
+
+    console.log(usrData);
+    console.log(typeof usrData);
 
     if (isLoading) {
         return <p>Loading...</p>; // Display a loading indicator while checking the authentication state
@@ -83,6 +133,10 @@ function Dashboard() {
                     <button type="submit">send code</button>
                 </form>
                 add friend
+                {usrData !== undefined &&
+                    Object.keys(usrData?.pendingFriends).map((key, index) => (
+                        <li key={index}>{usrData?.pendingFriends[key]}</li>
+                    ))}
             </>
         );
     } else {

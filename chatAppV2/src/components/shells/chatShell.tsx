@@ -1,24 +1,15 @@
 function Login() {
-
     return (
         <>
             <h1>Login:</h1>
 
-            <form method='POST'>
+            <form method="POST"></form>
 
-                <input type="email" placeholder="email" />
-                <br />
-                <input type="password" placeholder="password" />
-                <br />
-                <input type="submit" />
-
-            </form>
-
-            <p>no account? sign up <a href="">here</a></p>
+            <p>
+                no account? sign up <a href="">here</a>
+            </p>
         </>
-    )
+    );
 }
 
-export default Login
-
-
+export default Login;
