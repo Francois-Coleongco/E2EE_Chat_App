@@ -54,7 +54,7 @@ function KeyPage() {
             publicKey: publicKey,
             friends: [],
             pendingFriends: [],
-            incomdingFriends: [],
+            incomingFriends: [],
         });
 
         console.log("executed create");
