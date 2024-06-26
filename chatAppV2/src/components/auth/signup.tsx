@@ -72,6 +72,7 @@ const SignUp = () => {
                         }
                     />
                     <br />
+                    <br />
                     <input
                         name="password"
                         placeholder="Password"
@@ -82,7 +83,7 @@ const SignUp = () => {
                         }
                     />
                     <br />
-                    <button type="submit">click to log in</button>
+                    <button type="submit">click to sign up</button>
                 </form>
 
                 <p>

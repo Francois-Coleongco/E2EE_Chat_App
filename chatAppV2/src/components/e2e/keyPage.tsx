@@ -85,6 +85,7 @@ function KeyPage() {
                 <p>your key is currently {generatingKeyStatus}</p>
                 <button onClick={keyGod}>Generate Private Key</button>
                 <br />
+                SHOULD CHECK IF USER HAS PUBLIC KEY IN DATABASE AND THEN DENY ACCESS TO THE PAGE IF HTATS THE CASE
                 <br />
                 <a href={privKeyLink} download={"privatekey.pem"}>
                     Download Your Private Key

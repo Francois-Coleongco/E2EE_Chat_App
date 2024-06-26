@@ -12,6 +12,7 @@ import {
     updateDoc,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
+import { set } from "firebase/database";
 
 const db = getFirestore(app);
 
@@ -72,7 +73,7 @@ function Dashboard() {
         }
     };
 
-    const incomingHandler = async (e: React.FormEvent) => {
+    const incomingAddHandler = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const usersDoc = doc(db, "users", userUID);
@@ -252,7 +253,7 @@ function Dashboard() {
                                 <p>no friends LLL</p>
                             )}
                             {Object.keys(usrData.friends).map((key, index) => (
-                                <li key={index}>{usrData?.friends[key]}</li>
+                                <li key={index}>{usrData.friends[key]}</li>
                             ))}
                         </div>
                         <h3>incoming:</h3>
@@ -262,12 +263,28 @@ function Dashboard() {
                             {Object.keys(usrData.incomingFriends).map(
                                 (key, index) => (
                                     <li key={index}>
-                                        {usrData?.incomingFriends[key]}
+                                        <div>
+                                        <form onSubmit={incomingAddHandler}>
+                                        {usrData.incomingFriends[key]}
+                                        <button type="submit" onClick={() => setIncomingFriend(usrData.incomingFriends[key])}>accept?</button>
+                                        </form>
+                                        </div>
                                     </li>
                                 )
                             )}
                         </div>
-                        <div></div>
+                        <div>
+                            <h3>pending:</h3>
+                            {Object.keys(usrData.pendingFriends).length ===
+                                0 && <p>no pending friends</p>}
+                            {Object.keys(usrData.pendingFriends).map(
+                                (key, index) => (
+                                    <li key={index}>
+                                        {usrData.pendingFriends[key]}
+                                    </li>
+                                )
+                            )}
+                        </div>
                     </>
                 )}
             </>
