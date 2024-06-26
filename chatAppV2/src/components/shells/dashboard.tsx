@@ -9,6 +9,7 @@ import {
     doc,
     getDoc,
     getFirestore,
+    onSnapshot,
     updateDoc,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
@@ -93,21 +94,15 @@ function Dashboard() {
     };
 
     useEffect(() => {
-        console.log("this rendered");
-        const retrieveData = async () => {
-            try {
-                console.log("new");
-                const usersDocSnap = await getDoc(doc(db, "users", userUID));
-                console.log(usersDocSnap);
-                if (usersDocSnap.exists()) {
-                    console.log("new");
-                    setUsrData(usersDocSnap.data());
-                    console.log("got past");
-                }
-            } catch (error) {}
-        };
-        retrieveData();
-    }, [isLoading]);
+        const retrieve = async () => {
+            const ref = doc(db, "users", userUID)
+            onSnapshot(ref, (doc) => {
+                console.log("Current data: ", doc.data());
+                setUsrData(doc.data())
+            });
+        }
+        retrieve()
+    }, [isLoading])
 
     console.log(usrData);
     console.log(typeof usrData);
