@@ -7,3 +7,5 @@ https://github.com/cure53/DOMPurify
 U can host using the free plan of firebase. remember this before you cry about it being paid lol
 
 https://stackoverflow.com/questions/48505572/csrf-protection-with-firebase-email-password-authentication
+
+need to make sure rsa private key uploads are properly santized and validated
