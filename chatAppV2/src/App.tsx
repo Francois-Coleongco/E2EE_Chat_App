@@ -10,6 +10,7 @@ import SignUp from "./components/auth/signup";
 import Welcome from "./components/welcome";
 import Dashboard from "./components/shells/dashboard";
 import KeyPage from "./components/e2e/keyPage";
+import ChatShell from "./components/shells/chatShell";
 
 //const analytics = getAnalytics(app);
 
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/sign-up" element={<SignUp />} />
                 <Route path="/key-page" element={<KeyPage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="friend/:chatID" element={<ChatShell/>}/>
             </>
         )
     );

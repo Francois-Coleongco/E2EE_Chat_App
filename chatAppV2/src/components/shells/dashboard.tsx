@@ -7,13 +7,11 @@ import {
     arrayRemove,
     arrayUnion,
     doc,
-    getDoc,
     getFirestore,
     onSnapshot,
     updateDoc,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
-import { set } from "firebase/database";
 
 const db = getFirestore(app);
 
@@ -26,6 +24,7 @@ function Dashboard() {
 
     const [pendingFriend, setPendingFriend] = useState<string>("");
     const [incomingFriend, setIncomingFriend] = useState<string>("");
+
 
     const Out_Handler = () => {
         signOut(auth)
@@ -248,7 +247,9 @@ function Dashboard() {
                                 <p>no friends LLL</p>
                             )}
                             {Object.keys(usrData.friends).map((key, index) => (
-                                <li key={index}>{usrData.friends[key]}</li>
+                                <li key={index}>
+                                    <a href={"friend/" + usrData.friends[key]}>{key}</a>
+                                </li>
                             ))}
                         </div>
                         <h3>incoming:</h3>
