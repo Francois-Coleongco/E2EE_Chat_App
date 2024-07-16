@@ -1,33 +1,61 @@
-import { getFirestore, doc } from "firebase/firestore";
+import { getFirestore, doc, collection } from "firebase/firestore";
 import { app, auth } from "../../firebase";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const db = getFirestore(app);
 
 function ChatShell() {
 
-    const [messageBuffer, setMessageBuffer] = useState("")
+    const [messageBuffer, setMessageBuffer] = useState<string>("")
 
     const [messages, setMessages] = useState()
 
     const chatID = useParams()
 
+    const [userSignedIn, setUserSignedIn] = useState<string>("")
+
+    const [userUID, setUserUID] = useState<string>("")
+
+    const [isLoading, setIsLoading] = useState(true)
+
     //const [chatID, setChatID] = useState()
-
-    useEffect(() => {
-        console.log(chatID)
-        console.log(typeof(chatID))
-        getMessages()
-    })
-
     const getMessages = async () => {
+
+        messagesCollection = collection(db, "privateChats")
+       
+        console.log(messagesCollection)
+
+        if (userUID !== null) {
+
+            console.log()
+
+        }
     
         console.log("received chatID: " + chatID["chatID"])
-        
-        doc(db, )
+
 
     }
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("user is currently logged in");
+                console.log(user);
+                setUserSignedIn(true);
+                setUserUID(user.uid);
+                getMessages()
+            } else {
+                console.log("no user");
+                setUserSignedIn(false);
+            }
+            setIsLoading(false);
+        });
+        return unsubscribe;
+
+    }, [auth]);
+
+    
 
     return (
         <>
