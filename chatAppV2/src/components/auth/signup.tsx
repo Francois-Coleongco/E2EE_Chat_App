@@ -10,32 +10,111 @@ import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
 } from "firebase/auth";
-import { auth } from "../../firebase";
 
 import { Navigate } from "react-router-dom";
 
-
+import { app, auth } from "../../firebase";
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  https://www.honeybadger.io/blog/encryption-and-decryption-in-typescript/
+
+import { doc, getFirestore, setDoc, collection } from "firebase/firestore";
+
+const db = getFirestore(app);
+
+
+const createKeys = async () => {
+    const keypair = await crypto.subtle.generateKey(
+    {
+        name: "ECDH",
+        namedCurve: "P-521"
+    },
+    true,
+    ["deriveKey", "deriveBits"]
+    )
+    return keypair;
+}
+
+
+//    const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: CryptoKey) => {
+//      const sharedSecret = await crypto.subtle.deriveBits(
+//        {
+//          name: "ECDH",
+//          public: publicKey
+//        },
+//        privateKey,
+//        256 // Length of the derived key in bits for use as the AES 256 encryptor
+//      );
+//
+//      return new Uint8Array(sharedSecret);
+//    };
+
 
 const SignUp = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [userSignedIn, setUserSignedIn] = useState(false);
     const [userUID, setUserUID] = useState<string>("");
+    const [exportedKey, setExportedKey] = useState<JsonWebKey>();
     // const [isLoading, setIsLoading] = useState(true);
+    
+    const generateKeys = () => {
+        createKeys().then(keyPair => {
+            console.log('Key Pair:', keyPair);
+            console.log(keyPair.publicKey)
+            console.log(keyPair.privateKey)
+            // send publicKey to server
+            //
+            crypto.subtle.exportKey("jwk", keyPair.publicKey).then(expKey => {
+                
+                console.log('Exported Key:', expKey);
+                
+                setExportedKey(expKey)
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setUserSignedIn(true);
-            } else {
-                setUserSignedIn(false);
+                console.log("executed create");
+
             }
+            );
         });
 
-        return () => unsubscribe();
-    }, []);
+    } 
+    
+    useEffect(() => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    setUserSignedIn(true);
+                } else {
+                    setUserSignedIn(false);
+                }
+            });
 
+            return () => unsubscribe();
+        }, []);
+
+    useEffect(() => {
+        console.log(userUID)
+        generateKeys()
+
+        console.log(userUID)
+        console.log(exportedKey)
+    
+        writeToFireBase(exportedKey)
+
+    }, [userUID])
+
+    const writeToFireBase = async (exportedKey: JsonWebKey | undefined) => {
+        
+        console.log(userUID)
+        const usersDoc = doc(db, "users", userUID);
+
+        
+        await setDoc(usersDoc, {
+            publicKey: JSON.stringify(exportedKey),
+            friends: [],
+            pendingFriends: [],
+            incomingFriends: [],
+        });
+
+    }
+    
     const signUpFirebase = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -45,18 +124,14 @@ const SignUp = () => {
                 email,
                 password
             );
-
+            
             setUserUID(userCreds.user.uid);
         } catch (err) {
             return <Navigate to="/sign-up" />;
         }
     };
 
-    //console.log(userSignedIn);
 
-    // if (isLoading) {
-    //     return <p>Loading...</p>; // Display a loading indicator while checking the authentication state
-    // }
 
     if (auth.currentUser === null) {
         return (
@@ -94,7 +169,7 @@ const SignUp = () => {
     } else {
         return (
             <>
-                <Navigate to={"/key-page"} />
+                <Navigate to={"dashboard"} />
             </>
         );
     }

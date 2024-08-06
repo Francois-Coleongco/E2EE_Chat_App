@@ -1,8 +1,8 @@
-import { doc, getFirestore, setDoc, collection } from "firebase/firestore";
+import { doc, getFirestore, setDoc } from "firebase/firestore";
 import { app, auth } from "../../firebase";
 
 import * as forge from "node-forge";
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 
 import { onAuthStateChanged } from "firebase/auth";
