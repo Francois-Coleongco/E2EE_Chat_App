@@ -63,8 +63,6 @@ function KeyPage() {
 
         //! in the Users Directory in firebase, save the PUBLIC key. you will need to do some parsing for example getting rid of the header and footer of the key. when a user wants to send a message, you encrypt with the public key of the recipient by decoding the base64 and then using the encrypt utility in the node-forge lib
 
-        // ! create user document with document id set to the userUID
-
         // save public key to firebase account
 
         // save private key to a file and also add it to local storage

@@ -53,7 +53,17 @@ const SignUp = () => {
     const [password, setPassword] = useState<string>("");
     const [userSignedIn, setUserSignedIn] = useState(false);
     const [userUID, setUserUID] = useState<string>("");
-    const [exportedKey, setExportedKey] = useState<JsonWebKey>();
+    const [exportedPublicKey, setExportedPublicKey] = useState<JsonWebKey>();
+    const [privateKeyLink, setPrivateKeyLink] = useState<string>("#")
+    //
+        //
+        //IF USER WISHES TO THEY CAN DOWNLOAD THE PRIVATE KEY AS A FILE TO BACKUP.
+        //THE PRIVATE KEY WILL BE ENCRYPTED VIA WEB CRYPTO API USING A RANDOMLY GENERATED ENCRYPTION KEY AND IV VIA AES.
+        //
+        //
+        //WHEN USER LOGS IN, THE PRIVATE KEY IN THEIR LOCAL OR SESSION STORAGE WILL BE DECRYPTED AND USABLE FOR DIFFIE HELLMAN KEYEXCHANGE
+        //
+        //
     // const [isLoading, setIsLoading] = useState(true);
     
     const generateKeys = () => {
@@ -67,47 +77,32 @@ const SignUp = () => {
                 
                 console.log('Exported Key:', expKey);
                 
-                setExportedKey(expKey)
+                setExportedPublicKey(expKey)
 
                 console.log("executed create");
 
-            }
-            );
+            });
+
+            crypto.subtle.exportKey("jwk", keyPair.privateKey).then(expKey => {
+            
+
+                const privateKeyBlob = new Blob([JSON.stringify(expKey)], { type: "application/json" })
+
+                setPrivateKeyLink(URL.createObjectURL(privateKeyBlob))
+            });
         });
 
     } 
     
-    useEffect(() => {
-            const unsubscribe = onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    setUserSignedIn(true);
-                } else {
-                    setUserSignedIn(false);
-                }
-            });
 
-            return () => unsubscribe();
-        }, []);
-
-    useEffect(() => {
-        console.log(userUID)
-        generateKeys()
-
-        console.log(userUID)
-        console.log(exportedKey)
-    
-        writeToFireBase(exportedKey)
-
-    }, [userUID])
-
-    const writeToFireBase = async (exportedKey: JsonWebKey | undefined) => {
+    const writeToFireBase = async (exportedPublicKey: JsonWebKey | undefined) => {
         
         console.log(userUID)
         const usersDoc = doc(db, "users", userUID);
 
         
         await setDoc(usersDoc, {
-            publicKey: JSON.stringify(exportedKey),
+            publicKey: JSON.stringify(exportedPublicKey),
             friends: [],
             pendingFriends: [],
             incomingFriends: [],
@@ -132,6 +127,30 @@ const SignUp = () => {
     };
 
 
+    useEffect(() => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    setUserSignedIn(true);
+                } else {
+                    setUserSignedIn(false);
+                }
+            });
+
+            return () => unsubscribe();
+        }, []);
+
+    useEffect(() => {
+        console.log(userUID)
+        generateKeys()
+
+        console.log(userUID)
+        console.log(exportedPublicKey)
+    
+        writeToFireBase(exportedPublicKey)
+
+    }, [userUID])
+
+    
 
     if (auth.currentUser === null) {
         return (
@@ -160,6 +179,10 @@ const SignUp = () => {
                     <br />
                     <button type="submit">click to sign up</button>
                 </form>
+
+
+                <h2>your private key download will appear here:</h2>
+                <a href={privateKeyLink}>here</a>
 
                 <p>
                     already have an account? log in <a href="/login">here</a>!
