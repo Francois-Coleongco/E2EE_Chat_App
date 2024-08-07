@@ -7,6 +7,7 @@ import {
     arrayRemove,
     arrayUnion,
     doc,
+    getDoc,
     getFirestore,
     onSnapshot,
     updateDoc,
@@ -55,7 +56,11 @@ function Dashboard() {
     }, [auth]);
 
     const pendingHandler = async (e: React.FormEvent) => {
-        e.preventDefault();
+        // this is where to initiate publicKey exchange.
+        //
+        // the user reads the other user's publicKey 
+        //
+       e.preventDefault();
         const usersDoc = doc(db, "users", userUID);
         const requestedDoc = doc(db, "users", pendingFriend);
 
@@ -67,6 +72,15 @@ function Dashboard() {
             await updateDoc(usersDoc, {
                 pendingFriends: arrayUnion(pendingFriend),
             });
+
+            const requestedData = await getDoc(requestedDoc)
+
+
+            if (requestedData !== null) {
+                console.log(requestedData.data())
+
+
+            }
         } catch (error) {
             console.log("unable to add friend");
             return false;
@@ -76,6 +90,10 @@ function Dashboard() {
     const incomingAddHandler = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+
+            // this is where to initiate publicKey exchang.
+            //
+            // the user reads the other user's publicKey 
             const usersDoc = doc(db, "users", userUID);
             const requestedDoc = doc(db, "users", incomingFriend);
             await updateDoc(requestedDoc, {
