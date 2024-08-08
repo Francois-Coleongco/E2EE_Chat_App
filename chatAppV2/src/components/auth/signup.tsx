@@ -11,10 +11,8 @@ import {
 } from "firebase/auth";
 import { Navigate } from "react-router-dom";
 import { app, auth } from "../../firebase";
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  https://www.honeybadger.io/blog/encryption-and-decryption-in-typescript/
 import { doc, getFirestore, setDoc } from "firebase/firestore";
-import { AES_Key_Generate, AES_Encrypt_JSON_Web_Key } from "../crypto_funcs/encryption"
-
+import { AES_Key_Generate, AES_Encrypt_JSON_Web_Key, AES_Decrypt_JSON_Web_Key } from "../crypto_funcs/encryption"
 const db = getFirestore(app);
 
 
@@ -31,20 +29,6 @@ const createKeys = async () => {
 }
 
 
-//    const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: CryptoKey) => {
-//      const sharedSecret = await crypto.subtle.deriveBits(
-//        {
-//          name: "ECDH",
-//          public: publicKey
-//        },
-//        privateKey,
-//        256 // Length of the derived key in bits for use as the AES 256 encryptor
-//      );
-//
-//      return new Uint8Array(sharedSecret);
-//    };
-
-
 const SignUp = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
@@ -53,7 +37,9 @@ const SignUp = () => {
     const [exportedPublicKey, setExportedPublicKey] = useState<JsonWebKey>();
     const [exportedPrivateKey, setExportedPrivateKey] = useState<JsonWebKey>();
     const [privateKeyLink, setPrivateKeyLink] = useState<string>("#")
-    const [privKeyUnlocker, setPrivKeyUnlocker] = useState<CryptoKey>();
+    const [privKeyUnlocker, setPrivKeyUnlocker] = useState<JsonWebKey>();
+    const [signupClicked, setSignupClicked] = useState<boolean>(false);
+
     //
         //
         //IF USER WISHES TO THEY CAN DOWNLOAD THE PRIVATE KEY AS A FILE TO BACKUP.
@@ -98,7 +84,7 @@ const SignUp = () => {
     } 
     
 
-    const writeToFireBase = async (exportedPublicKey: JsonWebKey | undefined, privKeyUnlocker_AES: CryptoKey | undefined) => {
+    const writeToFireBase = async (exportedPublicKey: JsonWebKey | undefined, privKeyUnlocker_AES: JsonWebKey | undefined) => {
         
         console.log(userUID)
         const usersDoc = doc(db, "users", userUID);
@@ -121,8 +107,16 @@ const SignUp = () => {
         //
 
         const AES_Key = await AES_Key_Generate()
+        
+        crypto.subtle.exportKey("jwk", AES_Key).then(expKey => {
+                
+                console.log('Exported Key:', expKey);
+                
+                setPrivKeyUnlocker(expKey)
 
-        setPrivKeyUnlocker(AES_Key)
+                console.log("executed create");
+
+        });
 
         const AES_results = await AES_Encrypt_JSON_Web_Key(privateKey, AES_Key)
         
@@ -131,17 +125,13 @@ const SignUp = () => {
         // save to localStorage NOW
 
         localStorage.setItem("AES_Priv_Key", JSON.stringify(AES_results))
-
-        console.log(localStorage.getItem("AES_Priv_Key"))
-
-        const a = localStorage.getItem("AES_Priv_Key")
-
-        console.log(JSON.parse(a)) // says a is null but it isnt after setItem is called
-
+    
     }
     
     const signUpFirebase = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSignupClicked(true)
+
         try {
             const auth = getAuth();
             const userCreds = await createUserWithEmailAndPassword(
@@ -170,15 +160,22 @@ const SignUp = () => {
         }, []); // userUID is not set here, its set in signup function
 
     useEffect(() => {
-        console.log(userUID)
-        generateKeys()
 
-        console.log(userUID)
-        console.log(exportedPublicKey)
-    
-        writeToLocalStorage(exportedPrivateKey)
-        writeToFireBase(exportedPublicKey, privKeyUnlocker)
+        if (signupClicked === true) {
+            console.log(userUID)
+            generateKeys()
 
+            console.log(userUID)
+            console.log(exportedPublicKey)
+
+            console.log(exportedPrivateKey)
+
+            console.log(privKeyUnlocker)
+        
+            writeToLocalStorage(exportedPrivateKey)
+            writeToFireBase(exportedPublicKey, privKeyUnlocker)
+
+        }
 
     }, [userUID])
 

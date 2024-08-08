@@ -60,6 +60,12 @@ function Dashboard() {
         //
         // the user reads the other user's publicKey 
         //
+        //
+
+        // sym key is generated via deriveKey in cryptofuncs.
+
+        // after derived, sym key is encrypted through AES-GCM the same way the privateKey was encrypted. the derivedKeyUnlocker is saved to localStorage (user can download this to backup as well). encrypted derived key is saved to the privChat document 
+
        e.preventDefault();
         const usersDoc = doc(db, "users", userUID);
         const requestedDoc = doc(db, "users", pendingFriend);
@@ -78,8 +84,6 @@ function Dashboard() {
 
             if (requestedData !== null) {
                 console.log(requestedData.data())
-
-
             }
         } catch (error) {
             console.log("unable to add friend");

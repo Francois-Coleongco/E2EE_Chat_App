@@ -32,7 +32,52 @@ export const AES_Encrypt_JSON_Web_Key = async (unencrypted: JsonWebKey | undefin
 }
 
 
-async function decryptData(key: CryptoKey, iv: Uint8Array, encryptedContent: Uint8Array) {
+// ROUGH IMPLEMENTATIN FOR DECRYPTION. I CHECK IT WORKS. JUST MAKE SURE TO USE THE .then FOR THE PROMISE ON THE LAST LINE
+//
+//    in actual implementation you will need to grab the privateKeyUnlocker from firebase and then JSON.parse(privateKeyUnlocker) to retrieve the unlock for the encrypted key 
+//
+//        console.log(localStorage.getItem("AES_Priv_Key"))
+//
+//        const a: string = localStorage.getItem("AES_Priv_Key")
+//
+//        const aParsed  = JSON.parse(a)
+//
+//        console.log(a) // says a is null but it isnt after setItem is called
+//
+//        console.log(aParsed)
+//
+//        console.log(aParsed.iv)
+//
+//        console.log(aParsed.encryptedContent)
+//
+//        
+//
+//        // time to decrypt with AES-GCM
+//
+//
+//        const b = AES_Decrypt_JSON_Web_Key(AES_Key, aParsed.iv, aParsed.encryptedContent)
+//
+//        console.log(b.then())
+//
+
+
+   const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: CryptoKey) => {
+     const sharedSecret = await crypto.subtle.deriveBits(
+       {
+         name: "ECDH",
+         public: publicKey
+       },
+       privateKey,
+       256 // Length of the derived key in bits for use as the AES 256 encryptor
+     );
+
+     return new Uint8Array(sharedSecret);
+   };
+
+
+
+
+export async function AES_Decrypt_JSON_Web_Key(key: CryptoKey, iv: Uint8Array, encryptedContent: Uint8Array) {
   const ivBuffer = new Uint8Array(iv);
   const encryptedBuffer = new Uint8Array(encryptedContent);
 
