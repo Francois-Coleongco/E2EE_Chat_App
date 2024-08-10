@@ -66,6 +66,8 @@ function Dashboard() {
 
         // after derived, sym key is encrypted through AES-GCM the same way the privateKey was encrypted. the derivedKeyUnlocker is saved to localStorage (user can download this to backup as well). encrypted derived key is saved to the privChat document 
 
+        // check if the symkey entry exists within the localStorage
+
        e.preventDefault();
         const usersDoc = doc(db, "users", userUID);
         const requestedDoc = doc(db, "users", pendingFriend);
@@ -81,7 +83,11 @@ function Dashboard() {
 
             const requestedData = await getDoc(requestedDoc)
 
+            // get the requested's public key from firebase
 
+            if (requestedData.exists()) {
+                console.log(requestedData.data())
+            }
             if (requestedData !== null) {
                 console.log(requestedData.data())
             }

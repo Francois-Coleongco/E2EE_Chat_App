@@ -16,28 +16,13 @@ import { AES_Key_Generate, AES_Encrypt_JSON_Web_Key, AES_Decrypt_JSON_Web_Key } 
 const db = getFirestore(app);
 
 
-const createKeys = async () => {
-    const keypair = await crypto.subtle.generateKey(
-    {
-        name: "ECDH",
-        namedCurve: "P-521"
-    },
-    true,
-    ["deriveKey", "deriveBits"]
-    )
-    return keypair;
-}
-
 
 const SignUp = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [userSignedIn, setUserSignedIn] = useState(false);
     const [userUID, setUserUID] = useState<string>("");
-    const [exportedPublicKey, setExportedPublicKey] = useState<JsonWebKey>();
-    const [exportedPrivateKey, setExportedPrivateKey] = useState<JsonWebKey>();
     const [privateKeyLink, setPrivateKeyLink] = useState<string>("#")
-    const [privKeyUnlocker, setPrivKeyUnlocker] = useState<JsonWebKey>();
     const [signupClicked, setSignupClicked] = useState<boolean>(false);
 
     //
@@ -54,41 +39,43 @@ const SignUp = () => {
     //
     // const [isLoading, setIsLoading] = useState(true);
     
-    const generateKeys = () => {
-        createKeys().then(keyPair => {
-            console.log('Key Pair:', keyPair);
-            console.log(keyPair.publicKey)
-            console.log(keyPair.privateKey)
+    const generateKeys =  async () => {
+        const keypair = await crypto.subtle.generateKey(
+            {
+                name: "ECDH",
+                namedCurve: "P-521"
+            },
+            true,
+            ["deriveKey", "deriveBits"]
+        )
+            console.log('Key Pair:', keypair);
+            console.log(keypair.publicKey)
+            console.log(keypair.privateKey)
             // send publicKey to server
             //
-            crypto.subtle.exportKey("jwk", keyPair.publicKey).then(expKey => {
-                
-                console.log('Exported Key:', expKey);
-                
-                setExportedPublicKey(expKey)
+    try { 
+        const publicKey = await crypto.subtle.exportKey("jwk", keypair.publicKey);
 
-                console.log("executed create");
+        // Export the private key
+        const privateKey = await crypto.subtle.exportKey("jwk", keypair.privateKey);
 
-            });
+        // Return both keys in an object
+        return { publicKey, privateKey };
+    } catch (err) {
+        console.error("Error generating keys:", err);
+        throw err; // Re-throw error to handle it in the calling function
+    }
 
-            crypto.subtle.exportKey("jwk", keyPair.privateKey).then(expKey => {
-            
-                setExportedPrivateKey(expKey)
+    }
 
-                const privateKeyBlob = new Blob([JSON.stringify(expKey)], { type: "application/json" })
-
-                setPrivateKeyLink(URL.createObjectURL(privateKeyBlob))
-            });
-        });
-
-    } 
+    const writeToFireBase = async (exportedPublicKey: JsonWebKey | undefined, privKeyUnlocker_AES: JsonWebKey | undefined, UID: string) => {
     
-
-    const writeToFireBase = async (exportedPublicKey: JsonWebKey | undefined, privKeyUnlocker_AES: JsonWebKey | undefined) => {
         
-        console.log(userUID)
-        const usersDoc = doc(db, "users", userUID);
+        console.log(UID)
+        const usersDoc = doc(db, "users", UID);
 
+
+        console.log(exportedPublicKey)
         
         await setDoc(usersDoc, {
             publicKey: JSON.stringify(exportedPublicKey),
@@ -108,16 +95,7 @@ const SignUp = () => {
 
         const AES_Key = await AES_Key_Generate()
         
-        crypto.subtle.exportKey("jwk", AES_Key).then(expKey => {
-                
-                console.log('Exported Key:', expKey);
-                
-                setPrivKeyUnlocker(expKey)
-
-                console.log("executed create");
-
-        });
-
+        const privKeyUnlocker = await crypto.subtle.exportKey("jwk", AES_Key)
         const AES_results = await AES_Encrypt_JSON_Web_Key(privateKey, AES_Key)
         
         console.log(AES_results)
@@ -126,21 +104,41 @@ const SignUp = () => {
 
         localStorage.setItem("AES_Priv_Key", JSON.stringify(AES_results))
     
+        return privKeyUnlocker
+
     }
     
     const signUpFirebase = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSignupClicked(true)
 
         try {
+            console.log("generateKeys start")
+            const { publicKey, privateKey} = await generateKeys()
+
+            console.log("generateKeys end")
             const auth = getAuth();
             const userCreds = await createUserWithEmailAndPassword(
                 auth,
                 email,
                 password
-            );
+            ).then((creds) => {
+
+                    console.log(creds.user.uid)
+                    writeToLocalStorage(privateKey).then((privKeyUnlocker) => {
+
+                        writeToFireBase(publicKey, privKeyUnlocker, creds.user.uid)
+                    }
+                    )
+
+
+                });
             
-            setUserUID(userCreds.user.uid);
+           
+            console.log(userCreds)
+
+            
+
+
         } catch (err) {
             return <Navigate to="/sign-up" />;
         }
@@ -159,27 +157,7 @@ const SignUp = () => {
             return () => unsubscribe();
         }, []); // userUID is not set here, its set in signup function
 
-    useEffect(() => {
-
-        if (signupClicked === true) {
-            console.log(userUID)
-            generateKeys()
-
-            console.log(userUID)
-            console.log(exportedPublicKey)
-
-            console.log(exportedPrivateKey)
-
-            console.log(privKeyUnlocker)
-        
-            writeToLocalStorage(exportedPrivateKey)
-            writeToFireBase(exportedPublicKey, privKeyUnlocker)
-
-        }
-
-    }, [userUID])
-
-    
+   
 
     return (
         <>
