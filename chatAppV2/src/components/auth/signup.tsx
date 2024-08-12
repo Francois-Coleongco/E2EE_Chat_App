@@ -97,6 +97,10 @@ const SignUp = () => {
         
         const privKeyUnlocker = await crypto.subtle.exportKey("jwk", AES_Key)
         const AES_results = await AES_Encrypt_JSON_Web_Key(privateKey, AES_Key)
+
+        const privKeyBlob = new Blob([JSON.stringify(privateKey)], { type: "application/json"})
+
+        setPrivateKeyLink(URL.createObjectURL(privKeyBlob))
         
         console.log(AES_results)
 

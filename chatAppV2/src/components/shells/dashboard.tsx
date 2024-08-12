@@ -4,8 +4,10 @@ import { app, auth } from "../../firebase";
 import { Navigate } from "react-router-dom";
 import {
     DocumentData,
+    addDoc,
     arrayRemove,
     arrayUnion,
+    collection,
     doc,
     getDoc,
     getFirestore,
@@ -106,12 +108,17 @@ function Dashboard() {
             // the user reads the other user's publicKey 
             const usersDoc = doc(db, "users", userUID);
             const requestedDoc = doc(db, "users", incomingFriend);
+
+            const privChatDoc = await addDoc(collection(db, 'privateChats'), {
+                users : [incomingFriend, userUID]
+            })
+
             await updateDoc(requestedDoc, {
-                friends: arrayUnion(userUID),
+                friends: arrayUnion({ [`${userUID}`] : privChatDoc.id }),
                 pendingFriends: arrayRemove(userUID),
             });
             await updateDoc(usersDoc, {
-                friends: arrayUnion(incomingFriend),
+                friends: arrayUnion({ [`${incomingFriend}`] : privChatDoc.id }),
                 incomingFriends: arrayRemove(incomingFriend),
             });
         } catch (error) {
@@ -274,11 +281,15 @@ function Dashboard() {
                             {Object.keys(usrData.friends).length === 0 && (
                                 <p>no friends LLL</p>
                             )}
-                            {Object.keys(usrData.friends).map((key, index) => (
-                                <li key={index}>
-                                    <a href={"friend/" + usrData.friends[key]}>{key}</a>
-                                </li>
-                            ))}
+                            {usrData.friends.map((friend: string, index: string) => {
+        // Get the key-value pair from the dictionary
+        const [key, value] = Object.entries(friend)[0];
+        return (
+          <li key={index}>
+            <a href={"friend/" + value}>{key}</a>
+          </li>
+        );
+      })}
                         </div>
                         <h3>incoming:</h3>
                         <div>
