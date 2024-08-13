@@ -80,9 +80,7 @@ const SignUp = () => {
         await setDoc(usersDoc, {
             publicKey: JSON.stringify(exportedPublicKey),
             privateKeyUnlocker: JSON.stringify(privKeyUnlocker_AES),
-            friends: [],
-            pendingFriends: [],
-            incomingFriends: [],
+            // insert other user data if needed. this is only viewable by the user as specified in firestore rules
         });
 
     }

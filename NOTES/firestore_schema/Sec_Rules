@@ -115,3 +115,36 @@ service cloud.firestore {
 # new rules #4
 
 users can update another user's document but cant write, read, or delete. need to add checks in actual code to ensure friends array cant be direclty written to without acceptance
+
+
+
+
+MOST UPDATED
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+    	allow read, write, update: if (request.auth != null)
+      match /messages/{msgID} {
+      	allow read: if (request.auth != null) && request.auth.uid in resource.data.readers;
+				allow update: if (request.auth != null) && request.auth.uid == resource.data.sender;
+        allow write: if (request.auth != null) && request.auth.uid in get(/databases/$(database)/documents/privateChats/$(chatID)).data.users;
+      }
+    }
+    match /friendRequests/{friendReqID} {
+    	allow update: if request.auth != null
+      && request.auth.uid == resource.data.recipient
+      allow write: if request.auth != null
+      && request.resource.data.status is bool
+      && request.resource.data.status == false;
+      allow read, delete: if request.auth.uid in resource.data.members;
+    }
+    match /users/{userID} {
+    	allow read, write, update, delete: if (request.auth != null) && (request.auth.uid == userID)
+    }
+  }
+}
+
+

@@ -71,32 +71,9 @@ function Dashboard() {
         // check if the symkey entry exists within the localStorage
 
        e.preventDefault();
-        const usersDoc = doc(db, "users", userUID);
-        const requestedDoc = doc(db, "users", pendingFriend);
 
-        console.log(requestedDoc);
-        try {
-            await updateDoc(requestedDoc, {
-                incomingFriends: arrayUnion(userUID),
-            });
-            await updateDoc(usersDoc, {
-                pendingFriends: arrayUnion(pendingFriend),
-            });
+        // MAKE REQUEST TO friendRequests COLLECTION
 
-            const requestedData = await getDoc(requestedDoc)
-
-            // get the requested's public key from firebase
-
-            if (requestedData.exists()) {
-                console.log(requestedData.data())
-            }
-            if (requestedData !== null) {
-                console.log(requestedData.data())
-            }
-        } catch (error) {
-            console.log("unable to add friend");
-            return false;
-        }
     };
 
     const incomingAddHandler = async (e: React.FormEvent) => {
