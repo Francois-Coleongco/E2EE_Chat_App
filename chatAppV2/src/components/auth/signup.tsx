@@ -81,6 +81,7 @@ const SignUp = () => {
             publicKey: JSON.stringify(exportedPublicKey),
             privateKeyUnlocker: JSON.stringify(privKeyUnlocker_AES),
             // insert other user data if needed. this is only viewable by the user as specified in firestore rules
+            //
         });
 
     }

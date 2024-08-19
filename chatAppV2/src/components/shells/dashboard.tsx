@@ -1,309 +1,322 @@
 import { useState, useEffect } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { app, auth } from "../../firebase";
 import { Navigate } from "react-router-dom";
 import {
-    DocumentData,
-    addDoc,
-    arrayRemove,
-    arrayUnion,
-    collection,
-    doc,
-    getDoc,
-    getFirestore,
-    onSnapshot,
-    updateDoc,
+  DocumentData,
+  addDoc,
+  collection,
+  doc,
+  getFirestore,
+  onSnapshot,
+  updateDoc,
+  query,
+  where,
+  getDocs,
+  QuerySnapshot,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { app, auth } from "../../firebase";
+import { Query } from "firebase/firestore/lite";
 
 const db = getFirestore(app);
 
 function Dashboard() {
-    const [userSignedIn, setUserSignedIn] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [userUID, setUserUID] = useState<string>("");
+  const [userSignedIn, setUserSignedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userUID, setUserUID] = useState<string>("");
+  const [requestedUID, setRequestedUID] = useState<string>("");
 
-    const [usrData, setUsrData] = useState<DocumentData | undefined>();
+  const [usrData, setUsrData] = useState<DocumentData | undefined>();
+  const [sender_requests, setSenderRequests] = useState<DocumentData[] | undefined>()
+  const [acceptedFriend, setAcceptedFriend] = useState<string>("");
 
-    const [pendingFriend, setPendingFriend] = useState<string>("");
-    const [incomingFriend, setIncomingFriend] = useState<string>("");
+  const Out_Handler = () => {
+    signOut(auth)
+      .then(() => {
+        //signout success
+        console.log("SUCCESS");
+      })
+      .catch(() => {
+        //err
+        setUserSignedIn(false);
+      });
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("user is currently logged in");
+        console.log(user);
+        setUserSignedIn(true);
+        setUserUID(user.uid);
+      } else {
+        console.log("no user");
+        setUserSignedIn(false);
+      }
+      setIsLoading(false);
+    });
+    return unsubscribe;
+  }, [auth]);
 
 
-    const Out_Handler = () => {
-        signOut(auth)
-            .then(() => {
-                //signout success
-                console.log("SUCCESS");
-            })
-            .catch(() => {
-                //err
-                setUserSignedIn(false);
-            });
+
+  useEffect(() => {
+    const retrieve = async () => {
+      const ref = doc(db, "users", userUID);
+      onSnapshot(ref, (doc) => {
+        console.log("Current data: ", doc.data());
+        setUsrData(doc.data());
+      });
     };
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("user is currently logged in");
-                console.log(user);
-                setUserSignedIn(true);
-                setUserUID(user.uid);
-            } else {
-                console.log("no user");
-                setUserSignedIn(false);
-            }
-            setIsLoading(false);
-        });
-        return unsubscribe;
-    }, [auth]);
+    const friendRequestsRetrieve = async () => {
+      // okay im debating a bit whether it would be good to have friendRequests as a top level collection in firestore but i think for security purposes it would be good cuz then i can keep the user data unwritable completely from any other user other than the user that it belongs to
+      const sender_q: Query = query(
+        collection(db, "friendRequests"),
+        where("sender", "==", userUID),
+      );
+          onSnapshot(sender_q, (querySnapshot: QuerySnapshot) => {
+          const pending: DocumentData[] = [];
+          querySnapshot.forEach((doc) => {
+            pending.push(doc.data());
+            console.log(pending)
+          });
+          console.log("Current cities in CA: ", pending.join(", "));
 
-    const pendingHandler = async (e: React.FormEvent) => {
-        // this is where to initiate publicKey exchange.
-        //
-        // the user reads the other user's publicKey 
-        //
-        //
-
-        // sym key is generated via deriveKey in cryptofuncs.
-
-        // after derived, sym key is encrypted through AES-GCM the same way the privateKey was encrypted. the derivedKeyUnlocker is saved to localStorage (user can download this to backup as well). encrypted derived key is saved to the privChat document 
-
-        // check if the symkey entry exists within the localStorage
-
-       e.preventDefault();
-
-        // MAKE REQUEST TO friendRequests COLLECTION
-
+          setSenderRequests(pending)
+      });
     };
 
-    const incomingAddHandler = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
+    retrieve();
+    friendRequestsRetrieve();
 
-            // this is where to initiate publicKey exchang.
-            //
-            // the user reads the other user's publicKey 
-            const usersDoc = doc(db, "users", userUID);
-            const requestedDoc = doc(db, "users", incomingFriend);
+  }, [isLoading]);
 
-            const privChatDoc = await addDoc(collection(db, 'privateChats'), {
-                users : [incomingFriend, userUID]
-            })
 
-            await updateDoc(requestedDoc, {
-                friends: arrayUnion({ [`${userUID}`] : privChatDoc.id }),
-                pendingFriends: arrayRemove(userUID),
-            });
-            await updateDoc(usersDoc, {
-                friends: arrayUnion({ [`${incomingFriend}`] : privChatDoc.id }),
-                incomingFriends: arrayRemove(incomingFriend),
-            });
-        } catch (error) {
-            console.log("unable to add friend");
-            return false;
-        }
-    };
 
-    useEffect(() => {
-        const retrieve = async () => {
-            const ref = doc(db, "users", userUID)
-            onSnapshot(ref, (doc) => {
-                console.log("Current data: ", doc.data());
-                setUsrData(doc.data())
-            });
-        }
-        retrieve()
-    }, [isLoading])
+  const pendingHandler = async (e: React.FormEvent) => {
+    // this is where to initiate publicKey exchange.
+    //
+    // the user reads the other user's publicKey
+    //
 
-    console.log(usrData);
-    console.log(typeof usrData);
+    // sym key is generated via deriveKey in cryptofuncs.
 
-    if (usrData && usrData.friends) {
-        console.log(Object.keys(usrData.friends).length);
-    }
+    // after derived, sym key is encrypted through AES-GCM the same way the privateKey was encrypted. the derivedKeyUnlocker is saved to localStorage (user can download this to backup as well). encrypted derived key is saved to the privChat document
 
-    if (isLoading) {
-        return <p>Loading...</p>; // Display a loading indicator while checking the authentication state
-    }
+    // check if the symkey entry exists within the localStorage
 
-    if (userSignedIn === true && isLoading === false) {
-        return (
-            <>
-                <nav className="bg-gray-800">
-                    <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-                        <div className="relative flex h-16 items-center justify-between">
-                            <div className="absolute inset-y-0 left-0 flex items-center sm:hidden"></div>
-                            <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                                <div className="flex flex-shrink-0 items-center"></div>
-                                <div className="hidden sm:ml-6 sm:block">
-                                    <div className="flex space-x-4">
-                                        <a
-                                            href="/dashboard"
-                                            className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white"
-                                            aria-current="page"
-                                        >
-                                            Dashboard
-                                        </a>
-                                        <a
-                                            href="friends"
-                                            className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                                        >
-                                            Friends
-                                        </a>
-                                        <a
-                                            href="incoming"
-                                            className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                                        >
-                                            Incoming
-                                        </a>
-                                        <a
-                                            href="pending"
-                                            className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                                        >
-                                            Pending
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                                <button
-                                    type="button"
-                                    className="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-                                >
-                                    <span className="absolute -inset-1.5"></span>
-                                    <span className="sr-only">
-                                        View notifications
-                                    </span>
-                                </button>
-                                <div className="relative ml-3">
-                                    <div>
-                                        <button
-                                            type="button"
-                                            className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-                                            id="user-menu-button"
-                                            aria-expanded="false"
-                                            aria-haspopup="true"
-                                        >
-                                            <span className="absolute -inset-1.5"></span>
-                                            <span className="sr-only">
-                                                Open user menu
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    e.preventDefault();
 
-                    <div className="sm:hidden" id="mobile-menu">
-                        <div className="space-y-1 px-2 pb-3 pt-2">
-                            <a
-                                href="a"
-                                className="block rounded-md bg-gray-900 px-3 py-2 text-base font-medium text-white"
-                                aria-current="page"
-                            >
-                                Dashboard
-                            </a>
-                            <a
-                                href="#"
-                                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                            >
-                                Friends
-                            </a>
-                            <a
-                                href="#"
-                                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                            >
-                                Incoming
-                            </a>
-                            <a
-                                href="#"
-                                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                            >
-                                Pending
-                            </a>
-                        </div>
-                    </div>
-                </nav>
-                <button
-                    className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
-                    onClick={Out_Handler}
-                >
-                    sign out
-                </button>
-                <h1>Dashboard</h1>
-                <form onSubmit={pendingHandler}>
-                    <input
-                        name="pendingFriend"
-                        placeholder="add friend (userUID)"
-                        type="password"
-                        required
-                        onChange={(e) =>
-                            setPendingFriend(DOMPurify.sanitize(e.target.value))
-                        }
-                    />
-                    <br />
-                    <button
-                        type="submit"
-                        className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+    // MAKE REQUEST TO friendRequests COLLECTION
+    //
+    //
+    //
+    await addDoc(collection(db, "friendRequests"), {
+      requested: requestedUID,
+      sender: userUID,
+      members: [requestedUID, userUID],
+      status: false,
+    });
+  };
+
+  const incomingAddHandler = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // key exchange magic
+    //
+    console.log("clicked " + acceptedFriend)
+
+    // use accepted friend to search for a friend request that includes the userUID and the acceptedFriendUID
+
+    // once found, set status = true
+    // users are now friends which means you create the privChat now
+    //
+    in your friends retrival logic, search thru the friendRequests collection for all docs with userUID in the .members field. once you find them, check if status is true. if status == true, show link to respective chatID
+
+
+
+
+   // update friendrequest in friendRequests to status being true which means it has been accepted
+   // 
+   // chat id would not be creaeted if the user just writes friend to their profile.
+
+
+
+  };
+
+  console.log(usrData);
+  console.log(typeof usrData);
+
+
+  if (isLoading) {
+    return <p>Loading...</p>; // Display a loading indicator while checking the authentication state
+  }
+
+  if (userSignedIn === true && isLoading === false) {
+    return (
+      <>
+        <nav className="bg-gray-800">
+          <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+            <div className="relative flex h-16 items-center justify-between">
+              <div className="absolute inset-y-0 left-0 flex items-center sm:hidden"></div>
+              <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+                <div className="flex flex-shrink-0 items-center"></div>
+                <div className="hidden sm:ml-6 sm:block">
+                  <div className="flex space-x-4">
+                    <a
+                      href="/dashboard"
+                      className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white"
+                      aria-current="page"
                     >
-                        send code
+                      Dashboard
+                    </a>
+                    <a
+                      href="friends"
+                      className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Friends
+                    </a>
+                    <a
+                      href="incoming"
+                      className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Incoming
+                    </a>
+                    <a
+                      href="pending"
+                      className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Pending
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                <button
+                  type="button"
+                  className="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                >
+                  <span className="absolute -inset-1.5"></span>
+                  <span className="sr-only">View notifications</span>
+                </button>
+                <div className="relative ml-3">
+                  <div>
+                    <button
+                      type="button"
+                      className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                      id="user-menu-button"
+                      aria-expanded="false"
+                      aria-haspopup="true"
+                    >
+                      <span className="absolute -inset-1.5"></span>
+                      <span className="sr-only">Open user menu</span>
                     </button>
-                </form>
-                <br />
-                <h3>your friends:</h3>
-                {usrData !== undefined && (
-                    <>
-                        <div>
-                            {Object.keys(usrData.friends).length === 0 && (
-                                <p>no friends LLL</p>
-                            )}
-                            {usrData.friends.map((friend: string, index: string) => {
-        // Get the key-value pair from the dictionary
-        const [key, value] = Object.entries(friend)[0];
-        return (
-          <li key={index}>
-            <a href={"friend/" + value}>{key}</a>
-          </li>
-        );
-      })}
-                        </div>
-                        <h3>incoming:</h3>
-                        <div>
-                            {Object.keys(usrData.incomingFriends).length ===
-                                0 && <p>no incoming friends</p>}
-                            {Object.keys(usrData.incomingFriends).map(
-                                (key, index) => (
-                                    <li key={index}>
-                                        <div>
-                                        <form onSubmit={incomingAddHandler}>
-                                        {usrData.incomingFriends[key]}
-                                        <button type="submit" onClick={() => setIncomingFriend(usrData.incomingFriends[key])}>accept?</button>
-                                        </form>
-                                        </div>
-                                    </li>
-                                )
-                            )}
-                        </div>
-                        <div>
-                            <h3>pending:</h3>
-                            {Object.keys(usrData.pendingFriends).length ===
-                                0 && <p>no pending friends</p>}
-                            {Object.keys(usrData.pendingFriends).map(
-                                (key, index) => (
-                                    <li key={index}>
-                                        {usrData.pendingFriends[key]}
-                                    </li>
-                                )
-                            )}
-                        </div>
-                    </>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="sm:hidden" id="mobile-menu">
+            <div className="space-y-1 px-2 pb-3 pt-2">
+              <a
+                href="a"
+                className="block rounded-md bg-gray-900 px-3 py-2 text-base font-medium text-white"
+                aria-current="page"
+              >
+                Dashboard
+              </a>
+              <a
+                href="#"
+                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                Friends
+              </a>
+              <a
+                href="#"
+                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                Incoming
+              </a>
+              <a
+                href="#"
+                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                Pending
+              </a>
+            </div>
+          </div>
+        </nav>
+        <button
+          className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+          onClick={Out_Handler}
+        >
+          sign out
+        </button>
+        <h1>Dashboard</h1>
+        <form onSubmit={pendingHandler}>
+          <input
+            name="pendingFriend"
+            placeholder="add friend (userUID)"
+            type="password"
+            required
+            onChange={(e) =>
+              setRequestedUID(DOMPurify.sanitize(e.target.value))
+            }
+          />
+          <br />
+          <button
+            type="submit"
+            className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+          >
+            send code
+          </button>
+        </form>
+        <br />
+        <h3>your friends:</h3>
+        {usrData !== undefined && (
+          <>
+            <h3>incoming:</h3>
+            NEED TO REIMPLEMENT ALL FRIEND REQUEST RELATED DATA HERE
+
+            { (sender_requests !== undefined) && (
+            
+                <>
+                <div id="pending">
+
+                {Object.keys(sender_requests).length === 0 && (
+                    <p>nothing in sender_requests</p>
                 )}
-            </>
-        );
-    } else {
-        return <Navigate to={"/login"} />;
-    }
+                
+                {sender_requests.map((doc , index) => {
+                    
+                    return (
+                        <li key={index}>
+                        <form onSubmit={incomingAddHandler}>
+                            <button type="submit" onClick={() => {
+                                setAcceptedFriend(doc.requested)
+                            }}>
+                                requested {doc.requested}
+                            </button>
+                        </form>
+                        </li>
+                    )
+                    
+                })}
+
+                </div>
+                </>
+
+            )}
+
+          </>
+        )}
+      </>
+    );
+  } else {
+    return <Navigate to={"/login"} />;
+  }
 }
 
 export default Dashboard;
