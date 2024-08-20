@@ -148,3 +148,30 @@ service cloud.firestore {
 }
 
 
+
+rules_version = '2';
+
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /privateChats/{chatID} {
+    	allow write: if (request.auth != null)
+    	allow read, update: if (request.auth != null && request.auth.uid in resource.data.people)
+      match /messages/{msgID} {
+      	allow read: if (request.auth != null) && request.auth.uid in resource.data.readers;
+				allow update: if (request.auth != null) && request.auth.uid == resource.data.sender;
+        allow write: if (request.auth != null) && request.auth.uid in resource.data.members;
+      }
+    }
+    match /friendRequests/{friendReqID} {
+    	allow update: if request.auth != null
+      && request.auth.uid == resource.data.requested
+      allow read, delete: if request.auth.uid == resource.data.sender || request.auth.uid == resource.data.requested;
+      allow write: if request.auth != null
+      && request.resource.data.status == false;
+    }
+    match /users/{userID} {
+    	allow read, write, update, delete: if (request.auth != null) && (request.auth.uid == userID)
+    }
+  }
+}

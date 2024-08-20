@@ -7,11 +7,13 @@ import {
   doc,
   getFirestore,
   onSnapshot,
-  updateDoc,
+  setDoc,
   query,
   where,
-  getDocs,
   QuerySnapshot,
+  DocumentReference,
+  getDoc,
+  DocumentSnapshot,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -27,8 +29,12 @@ function Dashboard() {
   const [requestedUID, setRequestedUID] = useState<string>("");
 
   const [usrData, setUsrData] = useState<DocumentData | undefined>();
+
   const [sender_requests, setSenderRequests] = useState<DocumentData[] | undefined>()
-  const [acceptedFriend, setAcceptedFriend] = useState<string>("");
+  const [receiver_requests, setReceiverRequestsDoc] = useState<DocumentReference[] | undefined>()
+
+  const [receiver_requests_data, setReceiverRequestsData] = useState<DocumentData[] | undefined>()
+  const [acceptedFriendDoc, setAcceptedFriendDoc] = useState<DocumentReference | undefined>();
 
   const Out_Handler = () => {
     signOut(auth)
@@ -61,9 +67,11 @@ function Dashboard() {
 
 
   useEffect(() => {
-    const retrieve = async () => {
+    
+      const retrieve = async () => {
       const ref = doc(db, "users", userUID);
-      onSnapshot(ref, (doc) => {
+      onSnapshot(ref, (doc: DocumentSnapshot) => {
+        console.log(userUID)
         console.log("Current data: ", doc.data());
         setUsrData(doc.data());
       });
@@ -81,10 +89,32 @@ function Dashboard() {
             pending.push(doc.data());
             console.log(pending)
           });
-          console.log("Current cities in CA: ", pending.join(", "));
 
           setSenderRequests(pending)
       });
+
+      const receiver_q: Query = query(
+        collection(db, "friendRequests"),
+        where("requested", "==", userUID),
+      );
+          onSnapshot(receiver_q, (querySnapshot: QuerySnapshot) => {
+              const incomingDoc: DocumentReference[] = [];
+              const incomingData: DocumentData[] = [];
+
+              querySnapshot.forEach((doc) => {
+                  incomingDoc.push(doc.ref);
+                
+                  console.log(incomingDoc)
+                  incomingData.push(doc.data())
+              });
+
+          setReceiverRequestsDoc(incomingDoc)
+          setReceiverRequestsData(incomingData)
+      });
+
+
+ //     const receiver_
+
     };
 
     retrieve();
@@ -115,28 +145,33 @@ function Dashboard() {
     await addDoc(collection(db, "friendRequests"), {
       requested: requestedUID,
       sender: userUID,
-      members: [requestedUID, userUID],
       status: false,
     });
   };
 
-  const incomingAddHandler = async (e: React.FormEvent) => {
+
+
+  const incomingDocAddHandler = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // key exchange magic
     //
-    console.log("clicked " + acceptedFriend)
+    console.log("clicked " + JSON.stringify(acceptedFriendDoc))
 
     // use accepted friend to search for a friend request that includes the userUID and the acceptedFriendUID
 
     // once found, set status = true
     // users are now friends which means you create the privChat now
     //
-    in your friends retrival logic, search thru the friendRequests collection for all docs with userUID in the .members field. once you find them, check if status is true. if status == true, show link to respective chatID
 
+    
+    
+    if (acceptedFriendDoc !== undefined) {
+        console.log(acceptedFriendDoc)
+        setDoc(acceptedFriendDoc, { status: true }, { merge: true });
+    }
 
-
-
+    
    // update friendrequest in friendRequests to status being true which means it has been accepted
    // 
    // chat id would not be creaeted if the user just writes friend to their profile.
@@ -178,10 +213,10 @@ function Dashboard() {
                       Friends
                     </a>
                     <a
-                      href="incoming"
+                      href="incomingDoc"
                       className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
                     >
-                      Incoming
+                      incomingDoc
                     </a>
                     <a
                       href="pending"
@@ -237,7 +272,7 @@ function Dashboard() {
                 href="#"
                 className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
               >
-                Incoming
+                incomingDoc
               </a>
               <a
                 href="#"
@@ -277,7 +312,6 @@ function Dashboard() {
         <h3>your friends:</h3>
         {usrData !== undefined && (
           <>
-            <h3>incoming:</h3>
             NEED TO REIMPLEMENT ALL FRIEND REQUEST RELATED DATA HERE
 
             { (sender_requests !== undefined) && (
@@ -293,11 +327,38 @@ function Dashboard() {
                     
                     return (
                         <li key={index}>
-                        <form onSubmit={incomingAddHandler}>
+                        
+                        to: {doc.requested} 
+                        </li>
+                    )
+                    
+                })}
+
+                </div>
+                </>
+
+            )}
+
+            
+            <h3>incomingDoc:</h3>
+            { (receiver_requests !== undefined && receiver_requests_data !== undefined) && (
+            
+                <>
+                <div id="incomingDoc">
+
+                {Object.keys(receiver_requests).length === 0 && (
+                    <p>nothing in receiver_requests</p>
+                )}
+                
+                {receiver_requests.map((doc , index) => {
+                    console.log(receiver_requests_data[index])
+                    return (
+                        <li key={index}>
+                        <form onSubmit={incomingDocAddHandler}>
                             <button type="submit" onClick={() => {
-                                setAcceptedFriend(doc.requested)
+                                setAcceptedFriendDoc(doc)
                             }}>
-                                requested {doc.requested}
+                            from: {receiver_requests_data[index].sender}
                             </button>
                         </form>
                         </li>
