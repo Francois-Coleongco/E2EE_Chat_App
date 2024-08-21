@@ -9,10 +9,10 @@ import {
   onSnapshot,
   setDoc,
   query,
+  or,
   where,
   QuerySnapshot,
   DocumentReference,
-  getDoc,
   DocumentSnapshot,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
@@ -30,11 +30,18 @@ function Dashboard() {
 
   const [usrData, setUsrData] = useState<DocumentData | undefined>();
 
-  const [sender_requests, setSenderRequests] = useState<DocumentData[] | undefined>()
-  const [receiver_requests, setReceiverRequestsDoc] = useState<DocumentReference[] | undefined>()
+  const [sender_requests_docs, setSenderRequestsDocs] = useState<DocumentReference[] | undefined>()
+  const [sender_requests_data, setSenderRequestsData] = useState<DocumentData[] | undefined>()
 
+  
+  const [receiver_requests_docs, setReceiverRequestsDocs] = useState<DocumentReference[] | undefined>()
   const [receiver_requests_data, setReceiverRequestsData] = useState<DocumentData[] | undefined>()
+
+
   const [acceptedFriendDoc, setAcceptedFriendDoc] = useState<DocumentReference | undefined>();
+
+  const [requested_publicKey, setRequested_publicKey] = useState<string>();
+  const [sender_publicKey, setSender_publicKey] = useState<string>();
 
   const Out_Handler = () => {
     signOut(auth)
@@ -79,39 +86,53 @@ function Dashboard() {
 
     const friendRequestsRetrieve = async () => {
       // okay im debating a bit whether it would be good to have friendRequests as a top level collection in firestore but i think for security purposes it would be good cuz then i can keep the user data unwritable completely from any other user other than the user that it belongs to
-      const sender_q: Query = query(
-        collection(db, "friendRequests"),
-        where("sender", "==", userUID),
-      );
-          onSnapshot(sender_q, (querySnapshot: QuerySnapshot) => {
-          const pending: DocumentData[] = [];
-          querySnapshot.forEach((doc) => {
-            pending.push(doc.data());
-            console.log(pending)
-          });
 
-          setSenderRequests(pending)
-      });
+//      need to check if the document is set to status = true first
 
-      const receiver_q: Query = query(
-        collection(db, "friendRequests"),
-        where("requested", "==", userUID),
-      );
-          onSnapshot(receiver_q, (querySnapshot: QuerySnapshot) => {
-              const incomingDoc: DocumentReference[] = [];
-              const incomingData: DocumentData[] = [];
 
-              querySnapshot.forEach((doc) => {
-                  incomingDoc.push(doc.ref);
-                
-                  console.log(incomingDoc)
-                  incomingData.push(doc.data())
-              });
+        const friendRequestsCollection = collection(db, "friendRequests")
 
-          setReceiverRequestsDoc(incomingDoc)
+        // query snapshot all documents relating to the current user and then filter manually instead of using the where clauses which would be several queries
+
+        const q: Query = query(friendRequestsCollection, or(where("sender", "==", userUID), where("requested", "==", userUID)));
+
+
+        onSnapshot(q, (querySnapshot: QuerySnapshot) => {
+        
+            const friendsDocs: DocumentReference[] = [];
+            const pendingDocs: DocumentReference[] = [];
+            const incomingDocs: DocumentReference[] = [];
+
+            const friendsData: DocumentData[] = [];
+            const pendingData: DocumentData[] = [];
+            const incomingData: DocumentData[] = [];
+
+
+            querySnapshot.forEach((doc) => {
+            const doc_data = doc.data()
+
+            // KEEP THE DOC REFERENCES SO YOU CAN DELETE 
+                if (doc_data.request_status === true) {
+                    friendsData.push(doc.data());
+                    friendsDocs.push(doc.ref);
+                } else if (doc_data.sender === userUID) {
+                    pendingData.push(doc.data());
+                    pendingDocs.push(doc.ref);
+                } else if (doc_data.requested === userUID) {
+                    incomingData.push(doc.data())
+                    incomingDocs.push(doc.ref)
+                }
+
+            });
+
+          setSenderRequestsData(pendingData)
+          setSenderRequestsDocs(pendingDocs)
+
           setReceiverRequestsData(incomingData)
-      });
+          setReceiverRequestsDocs(incomingDocs)
 
+
+      });
 
  //     const receiver_
 
@@ -141,11 +162,14 @@ function Dashboard() {
     // MAKE REQUEST TO friendRequests COLLECTION
     //
     //
-    //
+    console.log("click3d")
+
     await addDoc(collection(db, "friendRequests"), {
       requested: requestedUID,
       sender: userUID,
-      status: false,
+      sender_pub_key: usrData?.publicKey,
+      request_status: false,
+      reqeusted_pub_key: "unknown"
     });
   };
 
@@ -168,7 +192,7 @@ function Dashboard() {
     
     if (acceptedFriendDoc !== undefined) {
         console.log(acceptedFriendDoc)
-        setDoc(acceptedFriendDoc, { status: true }, { merge: true });
+        setDoc(acceptedFriendDoc, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
     }
 
     
@@ -312,18 +336,20 @@ function Dashboard() {
         <h3>your friends:</h3>
         {usrData !== undefined && (
           <>
-            NEED TO REIMPLEMENT ALL FRIEND REQUEST RELATED DATA HERE
 
-            { (sender_requests !== undefined) && (
+            { (sender_requests_data !== undefined) && (
+
             
                 <>
+
                 <div id="pending">
 
-                {Object.keys(sender_requests).length === 0 && (
+                {Object.keys(sender_requests_data).length === 0 && (
                     <p>nothing in sender_requests</p>
+                    
                 )}
                 
-                {sender_requests.map((doc , index) => {
+                {sender_requests_data.map((doc , index) => {
                     
                     return (
                         <li key={index}>
@@ -341,16 +367,16 @@ function Dashboard() {
 
             
             <h3>incomingDoc:</h3>
-            { (receiver_requests !== undefined && receiver_requests_data !== undefined) && (
+            { (receiver_requests_docs !== undefined && receiver_requests_data !== undefined) && (
             
                 <>
                 <div id="incomingDoc">
 
-                {Object.keys(receiver_requests).length === 0 && (
+                {Object.keys(receiver_requests_docs).length === 0 && (
                     <p>nothing in receiver_requests</p>
                 )}
                 
-                {receiver_requests.map((doc , index) => {
+                {receiver_requests_docs.map((doc , index) => {
                     console.log(receiver_requests_data[index])
                     return (
                         <li key={index}>

@@ -73,3 +73,40 @@ Firebase Authentication uses JWT tokens
 ))}
 
 mapping a object in tsx
+
+
+
+
+
+FOR THE KEY EXCHANGE:
+
+
+    ==> when user1 sends a friend request to user2, the key exchange on their part begins
+
+    ====> user1's public key is sent to the firestore friendRequest doc
+
+    ==> when user2 accepts a friend request from user1, the key exchang on their part begins
+
+    ====> user2's public key is sent to the firestore friendRequest doc
+
+    
+    ----------------------------
+
+
+    ----------------------------
+
+    whenever the user's go to their dashboard, useEffect's listen for changes to the friendRequest docs that the user is a part of (uid is present within them) AND where the status field is set to true (indicating the users are friends)
+
+    as it listens for docs with these conditions, the publicKey of each friend and the privateKey (in encrypted form within the localStorage (privKeyUnlocker is saved on firestore and only accessible if the user is logged in)) are used to calculate the symmetric key for communication. the user's have to recalculate the keys each time they go to one of their chats.
+
+    symmetric keys are not saved within browser storage of any kind. the key remains a variable within a useState ensuring that when the user closes the tab, they will have to recalculate their keys. they are listed on their dashboard as their friends, and each friend has a link to the chatID in privateChats top-level collection
+
+    authenticate_to_firebase => dashboard (lists document references to each friend) => user_clicks_on_friend => user_taken_to_chat_room => user_calculates_symmetric_key_via_accessing_friendRequestDoc_then_decrypts_msgs_from_firestore
+
+    ----------------------------
+
+    if user wishes to send a message, the calculated key is just used for encryption instead then the result is written to firestore
+
+
+
+
