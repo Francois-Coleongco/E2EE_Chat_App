@@ -171,6 +171,9 @@ function Dashboard() {
       request_status: false,
       reqeusted_pub_key: "unknown"
     });
+
+        exchange publickey here
+
   };
 
 
@@ -195,7 +198,9 @@ function Dashboard() {
         setDoc(acceptedFriendDoc, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
     }
 
-    
+    exchange publickey here
+
+
    // update friendrequest in friendRequests to status being true which means it has been accepted
    // 
    // chat id would not be creaeted if the user just writes friend to their profile.
