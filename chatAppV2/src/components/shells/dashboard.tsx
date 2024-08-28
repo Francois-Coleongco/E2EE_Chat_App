@@ -14,6 +14,7 @@ import {
   QuerySnapshot,
   DocumentReference,
   DocumentSnapshot,
+  deleteDoc,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -21,6 +22,12 @@ import { app, auth } from "../../firebase";
 import { Query } from "firebase/firestore/lite";
 
 const db = getFirestore(app);
+
+interface relationship_data {
+    doc_ref: DocumentReference,
+    doc_data: DocumentData,
+
+}
 
 function Dashboard() {
   const [userSignedIn, setUserSignedIn] = useState(false);
@@ -30,18 +37,14 @@ function Dashboard() {
 
   const [usrData, setUsrData] = useState<DocumentData | undefined>();
 
-  const [sender_requests_docs, setSenderRequestsDocs] = useState<DocumentReference[] | undefined>()
-  const [sender_requests_data, setSenderRequestsData] = useState<DocumentData[] | undefined>()
-
   
-  const [receiver_requests_docs, setReceiverRequestsDocs] = useState<DocumentReference[] | undefined>()
-  const [receiver_requests_data, setReceiverRequestsData] = useState<DocumentData[] | undefined>()
+  const [outgoing_requests, setOutgoingRequests] = useState<relationship_data[] | undefined>()
 
-
+  const [incoming_requests, setIncomingRequests] = useState<relationship_data[] | undefined>()
+  
+  const [friendList, setFriendList] = useState<relationship_data[] | undefined>()
+  
   const [acceptedFriendDoc, setAcceptedFriendDoc] = useState<DocumentReference | undefined>();
-
-  const [requested_publicKey, setRequested_publicKey] = useState<string>();
-  const [sender_publicKey, setSender_publicKey] = useState<string>();
 
   const Out_Handler = () => {
     signOut(auth)
@@ -88,7 +91,11 @@ function Dashboard() {
       // okay im debating a bit whether it would be good to have friendRequests as a top level collection in firestore but i think for security purposes it would be good cuz then i can keep the user data unwritable completely from any other user other than the user that it belongs to
 
 //      need to check if the document is set to status = true first
+      let friends: relationship_data[] = []
 
+      let outgoing: relationship_data[]  = []
+      
+      let incoming: relationship_data[]  = []
 
         const friendRequestsCollection = collection(db, "friendRequests")
 
@@ -99,38 +106,29 @@ function Dashboard() {
 
         onSnapshot(q, (querySnapshot: QuerySnapshot) => {
         
-            const friendsDocs: DocumentReference[] = [];
-            const pendingDocs: DocumentReference[] = [];
-            const incomingDocs: DocumentReference[] = [];
-
-            const friendsData: DocumentData[] = [];
-            const pendingData: DocumentData[] = [];
-            const incomingData: DocumentData[] = [];
 
 
             querySnapshot.forEach((doc) => {
+            const doc_ref = doc.ref
             const doc_data = doc.data()
+
 
             // KEEP THE DOC REFERENCES SO YOU CAN DELETE 
                 if (doc_data.request_status === true) {
-                    friendsData.push(doc.data());
-                    friendsDocs.push(doc.ref);
+                    //is a friend
+                    friends.push( { doc_ref: doc_ref, doc_data: doc_data })
                 } else if (doc_data.sender === userUID) {
-                    pendingData.push(doc.data());
-                    pendingDocs.push(doc.ref);
+
+                    outgoing.push( { doc_ref: doc_ref, doc_data: doc_data })
                 } else if (doc_data.requested === userUID) {
-                    incomingData.push(doc.data())
-                    incomingDocs.push(doc.ref)
+                    friends.push( { doc_ref: doc_ref, doc_data: doc_data })
                 }
 
             });
-
-          setSenderRequestsData(pendingData)
-          setSenderRequestsDocs(pendingDocs)
-
-          setReceiverRequestsData(incomingData)
-          setReceiverRequestsDocs(incomingDocs)
-
+        
+            setFriendList(friends)
+            setOutgoingRequests(outgoing)
+            setIncomingRequests(incoming)
 
       });
 
@@ -143,7 +141,7 @@ function Dashboard() {
 
   }, [isLoading]);
 
-
+// NEED TO ADD REMOVE REQUEST FUNCTION HERE
 
   const pendingHandler = async (e: React.FormEvent) => {
     // this is where to initiate publicKey exchange.
@@ -172,7 +170,6 @@ function Dashboard() {
       reqeusted_pub_key: "unknown"
     });
 
-        exchange publickey here
 
   };
 
@@ -198,8 +195,6 @@ function Dashboard() {
         setDoc(acceptedFriendDoc, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
     }
 
-    exchange publickey here
-
 
    // update friendrequest in friendRequests to status being true which means it has been accepted
    // 
@@ -220,100 +215,10 @@ function Dashboard() {
   if (userSignedIn === true && isLoading === false) {
     return (
       <>
-        <nav className="bg-gray-800">
-          <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-            <div className="relative flex h-16 items-center justify-between">
-              <div className="absolute inset-y-0 left-0 flex items-center sm:hidden"></div>
-              <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="flex flex-shrink-0 items-center"></div>
-                <div className="hidden sm:ml-6 sm:block">
-                  <div className="flex space-x-4">
-                    <a
-                      href="/dashboard"
-                      className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white"
-                      aria-current="page"
-                    >
-                      Dashboard
-                    </a>
-                    <a
-                      href="friends"
-                      className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                    >
-                      Friends
-                    </a>
-                    <a
-                      href="incomingDoc"
-                      className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                    >
-                      incomingDoc
-                    </a>
-                    <a
-                      href="pending"
-                      className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                    >
-                      Pending
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                <button
-                  type="button"
-                  className="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-                >
-                  <span className="absolute -inset-1.5"></span>
-                  <span className="sr-only">View notifications</span>
-                </button>
-                <div className="relative ml-3">
-                  <div>
-                    <button
-                      type="button"
-                      className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-                      id="user-menu-button"
-                      aria-expanded="false"
-                      aria-haspopup="true"
-                    >
-                      <span className="absolute -inset-1.5"></span>
-                      <span className="sr-only">Open user menu</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="sm:hidden" id="mobile-menu">
-            <div className="space-y-1 px-2 pb-3 pt-2">
-              <a
-                href="a"
-                className="block rounded-md bg-gray-900 px-3 py-2 text-base font-medium text-white"
-                aria-current="page"
-              >
-                Dashboard
-              </a>
-              <a
-                href="#"
-                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-              >
-                Friends
-              </a>
-              <a
-                href="#"
-                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-              >
-                incomingDoc
-              </a>
-              <a
-                href="#"
-                className="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-              >
-                Pending
-              </a>
-            </div>
-          </div>
-        </nav>
         <button
-          className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+
+          className="bg-blue-500"
+          
           onClick={Out_Handler}
         >
           sign out
@@ -332,34 +237,42 @@ function Dashboard() {
           <br />
           <button
             type="submit"
-            className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+            className="bg-blue-500"
           >
             send code
           </button>
         </form>
         <br />
-        <h3>your friends:</h3>
+        
+
+
         {usrData !== undefined && (
           <>
 
-            { (sender_requests_data !== undefined) && (
+        <h3>your friends:</h3>
+
+            { }
+
+            { outgoing_requests !== undefined && (
 
             
                 <>
 
+
+        <h3>pending</h3>
+
                 <div id="pending">
 
-                {Object.keys(sender_requests_data).length === 0 && (
+                {Object.keys(outgoing_requests).length === 0 && (
                     <p>nothing in sender_requests</p>
                     
                 )}
                 
-                {sender_requests_data.map((doc , index) => {
-                    
+                {outgoing_requests.map((doc , index) => {
                     return (
                         <li key={index}>
                         
-                        to: {doc.requested} 
+                        to: {doc.doc_data.requested} 
                         </li>
                     )
                     
@@ -372,7 +285,7 @@ function Dashboard() {
 
             
             <h3>incomingDoc:</h3>
-            { (receiver_requests_docs !== undefined && receiver_requests_data !== undefined) && (
+            { incoming_requests !== undefined && (
             
                 <>
                 <div id="incomingDoc">
@@ -386,7 +299,7 @@ function Dashboard() {
                     return (
                         <li key={index}>
                         <form onSubmit={incomingDocAddHandler}>
-                            <button type="submit" onClick={() => {
+                            <button type="submit" className="bg-blue-500" onClick={() => {
                                 setAcceptedFriendDoc(doc)
                             }}>
                             from: {receiver_requests_data[index].sender}

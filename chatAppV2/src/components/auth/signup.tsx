@@ -24,7 +24,7 @@ const SignUp = () => {
     const [userUID, setUserUID] = useState<string>("");
     const [privateKeyLink, setPrivateKeyLink] = useState<string>("#")
     const [signupClicked, setSignupClicked] = useState<boolean>(false);
-
+    const [baking, setBaking] = useState<boolean | null>(null)
     //
         //
         //IF USER WISHES TO THEY CAN DOWNLOAD THE PRIVATE KEY AS A FILE TO BACKUP.
@@ -114,7 +114,10 @@ const SignUp = () => {
     const signUpFirebase = async (e: React.FormEvent) => {
         e.preventDefault();
 
+
         try {
+            setBaking(true)
+
             console.log("generateKeys start")
             const { publicKey, privateKey} = await generateKeys()
 
@@ -140,6 +143,7 @@ const SignUp = () => {
             console.log(userCreds)
 
             
+            setBaking(false)
 
 
         } catch (err) {
@@ -164,6 +168,24 @@ const SignUp = () => {
 
     return (
         <>
+        {
+            baking !== null && (
+                <>
+                {
+            baking !== true && (
+                <p>account created! proceed to <a href="dashboard">dashboard</a></p>
+            )
+        }
+
+        {
+            baking === true && (
+                <p>account is baking... please wait</p>
+            )
+        }
+                </>
+
+            )
+        }
             <form onSubmit={signUpFirebase}>
                 <h1>Sign Up</h1>
                 <input
