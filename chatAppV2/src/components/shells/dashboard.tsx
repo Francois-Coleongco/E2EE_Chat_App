@@ -32,6 +32,10 @@ interface relationship_data {
 function Dashboard() {
   const [userSignedIn, setUserSignedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [disallowedActionTriggered, setDisallowedActionTriggered] = useState<boolean>(false)
+
+
   const [userUID, setUserUID] = useState<string>("");
   const [requestedUID, setRequestedUID] = useState<string>("");
 
@@ -43,6 +47,8 @@ function Dashboard() {
   const [incoming_requests, setIncomingRequests] = useState<relationship_data[] | undefined>()
   
   const [friendList, setFriendList] = useState<relationship_data[] | undefined>()
+
+  const [alreadyIn, setAlreadyIn] = useState<string[] | undefined>()
   
   const [acceptedFriendDoc, setAcceptedFriendDoc] = useState<DocumentReference | undefined>();
 
@@ -50,7 +56,7 @@ function Dashboard() {
     signOut(auth)
       .then(() => {
         //signout success
-        console.log("SUCCESS");
+        ;
       })
       .catch(() => {
         //err
@@ -61,12 +67,12 @@ function Dashboard() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log("user is currently logged in");
-        console.log(user);
+        ;
+        ;
         setUserSignedIn(true);
         setUserUID(user.uid);
       } else {
-        console.log("no user");
+        ;
         setUserSignedIn(false);
       }
       setIsLoading(false);
@@ -75,14 +81,24 @@ function Dashboard() {
   }, [auth]);
 
 
+  useEffect(() => {
+      
+
+            
+
+            
+
+  })
 
   useEffect(() => {
+
+      
     
       const retrieve = async () => {
       const ref = doc(db, "users", userUID);
       onSnapshot(ref, (doc: DocumentSnapshot) => {
-        console.log(userUID)
-        console.log("Current data: ", doc.data());
+        
+        ;
         setUsrData(doc.data());
       });
     };
@@ -97,6 +113,8 @@ function Dashboard() {
       
       let incoming: relationship_data[]  = []
 
+      let already: string[] = []
+
         const friendRequestsCollection = collection(db, "friendRequests")
 
         // query snapshot all documents relating to the current user and then filter manually instead of using the where clauses which would be several queries
@@ -104,24 +122,32 @@ function Dashboard() {
         const q: Query = query(friendRequestsCollection, or(where("sender", "==", userUID), where("requested", "==", userUID)));
 
 
-        onSnapshot(q, (querySnapshot: QuerySnapshot) => {
+        onSnapshot(q, (querySnapshot: QuerySnapshot<DocumentData>) => {
         
 
 
             querySnapshot.forEach((doc) => {
             const doc_ref = doc.ref
             const doc_data = doc.data()
+            
+
+            
 
 
-            // KEEP THE DOC REFERENCES SO YOU CAN DELETE 
+            // KEEP THE DOC REFERENCES SO YOU CAN DELETE FRIEND REQUESTS
                 if (doc_data.request_status === true) {
                     //is a friend
                     friends.push( { doc_ref: doc_ref, doc_data: doc_data })
+                    
                 } else if (doc_data.sender === userUID) {
+                    already.push(doc_data.requested)
+                    
 
                     outgoing.push( { doc_ref: doc_ref, doc_data: doc_data })
                 } else if (doc_data.requested === userUID) {
-                    friends.push( { doc_ref: doc_ref, doc_data: doc_data })
+                    incoming.push( { doc_ref: doc_ref, doc_data: doc_data })
+                                        
+
                 }
 
             });
@@ -129,7 +155,9 @@ function Dashboard() {
             setFriendList(friends)
             setOutgoingRequests(outgoing)
             setIncomingRequests(incoming)
+            setAlreadyIn(already)
 
+            
       });
 
  //     const receiver_
@@ -160,16 +188,31 @@ function Dashboard() {
     // MAKE REQUEST TO friendRequests COLLECTION
     //
     //
-    console.log("click3d")
+    
 
-    await addDoc(collection(db, "friendRequests"), {
-      requested: requestedUID,
-      sender: userUID,
-      sender_pub_key: usrData?.publicKey,
-      request_status: false,
-      reqeusted_pub_key: "unknown"
-    });
+    
 
+    if (alreadyIn !== undefined) {
+        
+    }
+
+    if (alreadyIn?.includes(requestedUID) || userUID === requestedUID) {
+        setDisallowedActionTriggered(true) 
+    }
+    else {
+        
+         await addDoc(collection(db, "friendRequests"), {
+          requested: requestedUID,
+          sender: userUID,
+          sender_pub_key: usrData?.publicKey,
+          request_status: false,
+          reqeusted_pub_key: "unknown"
+        });
+
+    }
+
+
+   
 
   };
 
@@ -180,7 +223,7 @@ function Dashboard() {
 
     // key exchange magic
     //
-    console.log("clicked " + JSON.stringify(acceptedFriendDoc))
+    
 
     // use accepted friend to search for a friend request that includes the userUID and the acceptedFriendUID
 
@@ -191,7 +234,7 @@ function Dashboard() {
     
     
     if (acceptedFriendDoc !== undefined) {
-        console.log(acceptedFriendDoc)
+        
         setDoc(acceptedFriendDoc, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
     }
 
@@ -204,8 +247,8 @@ function Dashboard() {
 
   };
 
-  console.log(usrData);
-  console.log(typeof usrData);
+  ;
+  ;
 
 
   if (isLoading) {
@@ -215,108 +258,75 @@ function Dashboard() {
   if (userSignedIn === true && isLoading === false) {
     return (
       <>
+        <div className="min-h-screen bg-gray-100 p-8">
+      <button
+        className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 transition duration-300"
+        onClick={Out_Handler}
+      >
+        Sign Out
+      </button>
+      
+      <h1 className="text-4xl font-extrabold mt-6 mb-4 text-gray-800">Dashboard</h1>
+      
+      <form onSubmit={pendingHandler} className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <label htmlFor="pendingFriend" className="block text-gray-700 font-medium mb-2">Add Friend (UserUID)</label>
+        <input
+          id="pendingFriend"
+          name="pendingFriend"
+          placeholder="Enter userUID"
+          type="text"
+          required
+          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300 mb-4"
+          onChange={(e) => setRequestedUID(DOMPurify.sanitize(e.target.value))}
+        />
         <button
-
-          className="bg-blue-500"
-          
-          onClick={Out_Handler}
+          type="submit"
+          className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 transition duration-300"
         >
-          sign out
+          Send Code
         </button>
-        <h1>Dashboard</h1>
-        <form onSubmit={pendingHandler}>
-          <input
-            name="pendingFriend"
-            placeholder="add friend (userUID)"
-            type="password"
-            required
-            onChange={(e) =>
-              setRequestedUID(DOMPurify.sanitize(e.target.value))
-            }
-          />
-          <br />
-          <button
-            type="submit"
-            className="bg-blue-500"
-          >
-            send code
-          </button>
-        </form>
-        <br />
-        
+      </form>
 
+      <div className="mt-8 max-w-md mx-auto">
+        <h3 className="text-2xl font-semibold text-gray-800 mb-4">Your Friends</h3>
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+          {/* List your friends here */}
 
-        {usrData !== undefined && (
-          <>
+          { friendList !== undefined && (
+              friendList.map((rel_data, index) => {
 
-        <h3>your friends:</h3>
+                  let displayUID: string;
 
-            { }
+                  const sender = rel_data.doc_data.sender
 
-            { outgoing_requests !== undefined && (
+                  const requested = rel_data.doc_data.requested
 
-            
-                <>
+                  if (sender !== userUID) {
+                    displayUID = sender
+                  } else {
+                      displayUID = requested
+                  }
+                  return (
+                      <div key={index}>
+                      <p>{displayUID}</p>
+                      </div>
+                  )
+              })
+          )}
+        </div>
 
+        <h3 className="text-2xl font-semibold text-gray-800 mb-4">Incoming Requests</h3>
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+          {/* List incoming requests here */}
+        </div>
 
-        <h3>pending</h3>
-
-                <div id="pending">
-
-                {Object.keys(outgoing_requests).length === 0 && (
-                    <p>nothing in sender_requests</p>
-                    
-                )}
-                
-                {outgoing_requests.map((doc , index) => {
-                    return (
-                        <li key={index}>
-                        
-                        to: {doc.doc_data.requested} 
-                        </li>
-                    )
-                    
-                })}
-
-                </div>
-                </>
-
-            )}
-
-            
-            <h3>incomingDoc:</h3>
-            { incoming_requests !== undefined && (
-            
-                <>
-                <div id="incomingDoc">
-
-                {Object.keys(receiver_requests_docs).length === 0 && (
-                    <p>nothing in receiver_requests</p>
-                )}
-                
-                {receiver_requests_docs.map((doc , index) => {
-                    console.log(receiver_requests_data[index])
-                    return (
-                        <li key={index}>
-                        <form onSubmit={incomingDocAddHandler}>
-                            <button type="submit" className="bg-blue-500" onClick={() => {
-                                setAcceptedFriendDoc(doc)
-                            }}>
-                            from: {receiver_requests_data[index].sender}
-                            </button>
-                        </form>
-                        </li>
-                    )
-                    
-                })}
-
-                </div>
-                </>
-
-            )}
-
-          </>
-        )}
+        <h3 className="text-2xl font-semibold text-gray-800 mb-4">Outgoing Requests</h3>
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          {/* List outgoing requests here */}
+        </div>
+      </div>
+    </div>
+  
       </>
     );
   } else {
