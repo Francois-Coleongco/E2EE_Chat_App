@@ -49,8 +49,13 @@ function Dashboard() {
   const [friendList, setFriendList] = useState<relationship_data[] | undefined>()
 
   const [alreadyIn, setAlreadyIn] = useState<string[] | undefined>()
-  
-  const [acceptedFriendDoc, setAcceptedFriendDoc] = useState<DocumentReference | undefined>();
+ 
+
+  const [acceptedFriendRelData, setAcceptedFriendRelData] = useState<relationship_data | undefined>();
+
+  const [requestToDelete, setRequestToDelete] = useState<DocumentReference | undefined>()
+    
+  const [blah, setBlah] = useState<string[] | undefined>()
 
   const Out_Handler = () => {
     signOut(auth)
@@ -81,20 +86,12 @@ function Dashboard() {
   }, [auth]);
 
 
-  useEffect(() => {
-      
-
-            
-
-            
-
-  })
-
+  
   useEffect(() => {
 
       
     
-      const retrieve = async () => {
+    const retrieve = async () => {
       const ref = doc(db, "users", userUID);
       onSnapshot(ref, (doc: DocumentSnapshot) => {
         
@@ -103,7 +100,7 @@ function Dashboard() {
       });
     };
 
-    const friendRequestsRetrieve = async () => {
+    const friendRequestsRetrieve =  () => {
       // okay im debating a bit whether it would be good to have friendRequests as a top level collection in firestore but i think for security purposes it would be good cuz then i can keep the user data unwritable completely from any other user other than the user that it belongs to
 
 //      need to check if the document is set to status = true first
@@ -116,40 +113,26 @@ function Dashboard() {
       let already: string[] = []
 
         const friendRequestsCollection = collection(db, "friendRequests")
-
         // query snapshot all documents relating to the current user and then filter manually instead of using the where clauses which would be several queries
 
-        const q: Query = query(friendRequestsCollection, or(where("sender", "==", userUID), where("requested", "==", userUID)));
+        const friendRequestsQuery: Query = query(friendRequestsCollection, or(where("sender", "==", userUID), where("requested", "==", userUID)));
 
 
-        onSnapshot(q, (querySnapshot: QuerySnapshot<DocumentData>) => {
-        
-
-
+        onSnapshot(friendRequestsQuery, (querySnapshot: QuerySnapshot<DocumentData>) => {
             querySnapshot.forEach((doc) => {
             const doc_ref = doc.ref
             const doc_data = doc.data()
-            
-
-            
-
-
             // KEEP THE DOC REFERENCES SO YOU CAN DELETE FRIEND REQUESTS
                 if (doc_data.request_status === true) {
                     //is a friend
+                    already.push(doc_data.requested)
                     friends.push( { doc_ref: doc_ref, doc_data: doc_data })
-                    
                 } else if (doc_data.sender === userUID) {
                     already.push(doc_data.requested)
-                    
-
                     outgoing.push( { doc_ref: doc_ref, doc_data: doc_data })
                 } else if (doc_data.requested === userUID) {
                     incoming.push( { doc_ref: doc_ref, doc_data: doc_data })
-                                        
-
                 }
-
             });
         
             setFriendList(friends)
@@ -157,17 +140,33 @@ function Dashboard() {
             setIncomingRequests(incoming)
             setAlreadyIn(already)
 
-            
-      });
-
- //     const receiver_
+        });
 
     };
 
+    const privChatsRetrieve = () => {
+        const privChatsCollection = collection(db, "privateChats")
+        const privChatQuery: Query = query(privChatsCollection, where("members", "array-contains", userUID))
+
+        const bleh: string[] = []
+        onSnapshot(privChatQuery, (querySnapshot: QuerySnapshot<DocumentData>) => {
+            querySnapshot.forEach((doc) => {
+                bleh.push(doc.id)
+            })
+            
+            setBlah(bleh)
+        })
+
+
+    } //x5tPcPG5IjOunWfCpdDPwlZGZQA3
+
+
     retrieve();
     friendRequestsRetrieve();
+    privChatsRetrieve()
 
-  }, [isLoading]);
+
+  });
 
 // NEED TO ADD REMOVE REQUEST FUNCTION HERE
 
@@ -190,11 +189,7 @@ function Dashboard() {
     //
     
 
-    
-
-    if (alreadyIn !== undefined) {
-        
-    }
+   console.log(alreadyIn) 
 
     if (alreadyIn?.includes(requestedUID) || userUID === requestedUID) {
         setDisallowedActionTriggered(true) 
@@ -233,22 +228,40 @@ function Dashboard() {
 
     
     
-    if (acceptedFriendDoc !== undefined) {
+    if (acceptedFriendRelData !== undefined) {
         
-        setDoc(acceptedFriendDoc, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
+        await setDoc(acceptedFriendRelData.doc_ref, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
+        
+        await addDoc(collection(db, "privateChats"), {
+            members: [userUID, acceptedFriendRelData.doc_data.requested]
+            
+        })
+
+        // this is what you use for the link in URL params => privChatDoc.id
+
+    } else {
+
+        console.log("error has occurred. please try this action again.")
     }
 
 
    // update friendrequest in friendRequests to status being true which means it has been accepted
    // 
    // chat id would not be creaeted if the user just writes friend to their profile.
-
-
+    
+    //create the chat shell instance here
+    
 
   };
 
-  ;
-  ;
+  const deleteOutgoingHandler = async (e: React.FormEvent) => {
+
+      e.preventDefault()
+
+      if (requestToDelete !== undefined) {
+        await deleteDoc(requestToDelete)
+      }
+  }
 
 
   if (isLoading) {
@@ -270,6 +283,9 @@ function Dashboard() {
       
       <form onSubmit={pendingHandler} className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
         <label htmlFor="pendingFriend" className="block text-gray-700 font-medium mb-2">Add Friend (UserUID)</label>
+        { disallowedActionTriggered === true && (
+                <p>ACTION NOT ALLOWED</p>
+        )}
         <input
           id="pendingFriend"
           name="pendingFriend"
@@ -308,7 +324,7 @@ function Dashboard() {
                   }
                   return (
                       <div key={index}>
-                      <p>{displayUID}</p>
+                      <a href="chatID">{displayUID}</a>
                       </div>
                   )
               })
@@ -318,11 +334,51 @@ function Dashboard() {
         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Incoming Requests</h3>
         <div className="bg-white p-4 rounded-lg shadow-md mb-6">
           {/* List incoming requests here */}
+
+            { incoming_requests !== undefined && (
+              incoming_requests.map((rel_data, index) => {
+
+                  let displayUID: string = rel_data.doc_data.sender;
+
+                  return (
+                      <div key={index}>
+                      <form onSubmit={incomingDocAddHandler}>
+                      <li>{displayUID}</li>
+                      <button type="submit" onClick={
+                          () => {
+                          setAcceptedFriendRelData(rel_data)
+                          }
+                      }>accept</button>
+                      </form>
+                      </div>
+                  )
+              })
+          )}
+
         </div>
 
         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Outgoing Requests</h3>
         <div className="bg-white p-4 rounded-lg shadow-md">
           {/* List outgoing requests here */}
+{ outgoing_requests !== undefined && (
+
+              outgoing_requests.map((rel_data, index) => {
+
+                  let displayUID: string = rel_data.doc_data.requested;
+
+                  return (
+                      <div key={index}>
+                      <form onSubmit={deleteOutgoingHandler}>
+                      <li>{displayUID}</li>
+                      <button type="submit" className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500" onClick={() => setRequestToDelete(rel_data.doc_ref)}>delete</button>
+                      </form>
+
+                      </div>
+                  )
+              })
+          )}
+
+
         </div>
       </div>
     </div>
