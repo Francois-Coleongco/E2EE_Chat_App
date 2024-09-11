@@ -1,4 +1,4 @@
-import { getFirestore, doc, collection, getDoc, onSnapshot, DocumentSnapshot, query, QuerySnapshot, where } from "firebase/firestore";
+import { getFirestore, doc, collection, getDoc, onSnapshot, DocumentSnapshot, query, QuerySnapshot, where, addDoc } from "firebase/firestore";
 import { app, auth } from "../../firebase";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -20,7 +20,72 @@ function ChatShell() {
 
     const [isLoading, setIsLoading] = useState(true)
 
+    const messagesCollection = collection(db, "privateChats/" + chatID + "/messages")
     //const [chatID, setChatID] = useState()
+
+
+    const getChatRoom = async () => {
+
+        if (chatID !== undefined) {
+            const chatDoc = await getDoc(doc(db, "privateChats", chatID))
+            console.log(chatDoc.data())
+        }
+    }
+
+
+    const getMessages = () => {
+
+        if (chatID !== undefined) {
+
+            // get privchatdocument in privChatsCollection
+            // get documents in the privchatdocument
+
+            // using privChatDocRef, get the privChatMessages
+            //
+            //
+            //
+            console.log(chatID)
+            const q = query(messagesCollection, where("readers", "array-contains", userUID))
+            console.log(q)
+            console.log(userUID)
+
+            console.log(auth)
+
+            const unsubscribe_message_snapshot = onSnapshot(q, (QuerySnapshot) => {
+
+                const messages: string[] = []
+
+                QuerySnapshot.forEach(
+                    (doc) => {
+                        console.log(doc.data()) // this is the message
+                        messages.push(JSON.stringify(doc.data()))
+                    }
+                )
+            }, (err) => {
+                console.log("poopsie whoopsie")
+            })
+
+            return unsubscribe_message_snapshot
+
+        }
+
+        else {
+            console.log("WHOOPS chatID is somehow undefined...");
+        }
+
+    }
+
+    const sendMessage = async (e: React.FormEvent) => {
+
+        addDoc(messagesCollection, {
+            message: msg_buffer,
+            sender: userUID,
+            readers: [userUID, friendUID]
+        })
+
+    }
+
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -40,55 +105,16 @@ function ChatShell() {
     }, [auth]);
 
 
+
     useEffect(() => {
         console.log(userUID)
 
         getMessages();
+
+        getChatRoom();
     }, [userUID])
 
-    const getMessages = () => {
 
-        if (userUID !== "") {
-            console.log(userUID)
-        }
-
-        if (chatID !== undefined) {
-
-            // get privchatdocument in privChatsCollection
-            // get documents in the privchatdocument
-
-            // using privChatDocRef, get the privChatMessages
-            //
-            //
-            //
-            console.log(chatID)
-            const q = query(collection(db, "privateChats/" + chatID + "/messages"), where("readers", "array-contains", userUID))
-            console.log(q)
-            console.log(userUID)
-
-            console.log(auth)
-
-            const unsubscribe_message_snapshot = onSnapshot(q, (QuerySnapshot) => {
-
-                QuerySnapshot.forEach(
-                    (doc) => {
-                        console.log(doc.data()) // this is the message
-                    }
-
-                )
-            }, (err) => {
-                console.log("poopsie whoopsie")
-            })
-
-            return unsubscribe_message_snapshot
-
-        }
-
-        else {
-            console.log("WHOOPS chatID is somehow undefined...");
-        }
-
-    }
 
     // focus on getting the messages sent first then add the key derivation then the encryption
 

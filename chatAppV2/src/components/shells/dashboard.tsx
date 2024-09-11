@@ -69,6 +69,95 @@ function Dashboard() {
             });
     };
 
+
+    const retrieve = async () => {
+        try {
+            const ref = doc(db, "users", userUID);
+            onSnapshot(ref, (doc: DocumentSnapshot) => {
+                setUsrData(doc.data());
+            });
+        }
+        catch (err) {
+        }
+
+    };
+
+    const friendRequestsRetrieve = () => {
+        // okay im debating a bit whether it would be good to have friendRequests as a top level collection in firestore but i think for security purposes it would be good cuz then i can keep the user data unwritable completely from any other user other than the user that it belongs to
+
+        //      need to check if the document is set to status = true first
+
+        const friendRequestsCollection = collection(db, "friendRequests")
+        // query snapshot all documents relating to the current user and then filter manually instead of using the where clauses which would be several queries
+
+        const friendRequestsQuery: Query = query(friendRequestsCollection, or(where("sender", "==", userUID), where("requested", "==", userUID)));
+
+
+        const unsubscribe_FR_snapshot = onSnapshot(friendRequestsQuery, (querySnapshot: QuerySnapshot<DocumentData>) => {
+
+            let friends: relationship_data[] = []
+
+            let outgoing: relationship_data[] = []
+
+            let incoming: relationship_data[] = []
+
+            let already: string[] = []
+
+
+            querySnapshot.forEach((doc) => {
+                const doc_ref = doc.ref
+                const doc_data = doc.data()
+                // KEEP THE DOC REFERENCES SO YOU CAN DELETE FRIEND REQUESTS
+                if (doc_data.request_status === true) {
+                    //is a friend
+                    already.push(doc_data.requested)
+                    friends.push({ doc_ref: doc_ref, doc_data: doc_data })
+                } else if (doc_data.sender === userUID) {
+                    already.push(doc_data.requested)
+                    outgoing.push({ doc_ref: doc_ref, doc_data: doc_data })
+                } else if (doc_data.requested === userUID) {
+                    incoming.push({ doc_ref: doc_ref, doc_data: doc_data })
+                }
+            });
+
+            console.log("BOOOOOOOO")
+
+
+            console.log(friends)
+
+            setFriendList(friends)
+            setOutgoingRequests(outgoing)
+            setIncomingRequests(incoming)
+            setAlreadyIn(already)
+
+
+        }, (err) => {
+            console.log('whoopsie poopsie');
+        })
+
+
+        return unsubscribe_FR_snapshot
+    }
+
+
+    const privChatsRetrieve = () => {
+        const privChatsCollection = collection(db, "privateChats")
+        const privChatQuery: Query = query(privChatsCollection, where("members", "array-contains", userUID))
+
+        const privChats: string[] = []
+        const unsubscribe_PC_snapshot = onSnapshot(privChatQuery, (querySnapshot: QuerySnapshot<DocumentData>) => {
+            querySnapshot.forEach((doc) => {
+                privChats.push(doc.id)
+            })
+
+            setPrivChats(privChats)
+        })
+
+
+
+    } //x5tPcPG5IjOunWfCpdDPwlZGZQA3
+
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -91,95 +180,12 @@ function Dashboard() {
     useEffect(() => {
 
 
-
-        const retrieve = async () => {
-            try {
-                const ref = doc(db, "users", userUID);
-                onSnapshot(ref, (doc: DocumentSnapshot) => {
-                    setUsrData(doc.data());
-                });
-            }
-            catch (err) {
-            }
-
-        };
-
-        const friendRequestsRetrieve = () => {
-            // okay im debating a bit whether it would be good to have friendRequests as a top level collection in firestore but i think for security purposes it would be good cuz then i can keep the user data unwritable completely from any other user other than the user that it belongs to
-
-            //      need to check if the document is set to status = true first
-            let friends: relationship_data[] = []
-
-            let outgoing: relationship_data[] = []
-
-            let incoming: relationship_data[] = []
-
-            let already: string[] = []
-
-
-            const friendRequestsCollection = collection(db, "friendRequests")
-            // query snapshot all documents relating to the current user and then filter manually instead of using the where clauses which would be several queries
-
-            const friendRequestsQuery: Query = query(friendRequestsCollection, or(where("sender", "==", userUID), where("requested", "==", userUID)));
-
-
-            const unsubscribe_FR_snapshot = onSnapshot(friendRequestsQuery, (querySnapshot: QuerySnapshot<DocumentData>) => {
-                querySnapshot.forEach((doc) => {
-                    const doc_ref = doc.ref
-                    const doc_data = doc.data()
-                    // KEEP THE DOC REFERENCES SO YOU CAN DELETE FRIEND REQUESTS
-                    if (doc_data.request_status === true) {
-                        //is a friend
-                        already.push(doc_data.requested)
-                        friends.push({ doc_ref: doc_ref, doc_data: doc_data })
-                    } else if (doc_data.sender === userUID) {
-                        already.push(doc_data.requested)
-                        outgoing.push({ doc_ref: doc_ref, doc_data: doc_data })
-                    } else if (doc_data.requested === userUID) {
-                        incoming.push({ doc_ref: doc_ref, doc_data: doc_data })
-                    }
-                });
-
-                setFriendList(friends)
-                setOutgoingRequests(outgoing)
-                setIncomingRequests(incoming)
-                setAlreadyIn(already)
-
-
-            }, (err) => {
-                console.log('whoopsie poopsie');
-            })
-
-            return unsubscribe_FR_snapshot
-
-        }
-
-
-        const privChatsRetrieve = () => {
-            const privChatsCollection = collection(db, "privateChats")
-            const privChatQuery: Query = query(privChatsCollection, where("members", "array-contains", userUID))
-
-            const privChats: string[] = []
-            const unsubscribe_PC_snapshot = onSnapshot(privChatQuery, (querySnapshot: QuerySnapshot<DocumentData>) => {
-                querySnapshot.forEach((doc) => {
-                    privChats.push(doc.id)
-                })
-
-                setPrivChats(privChats)
-            })
-
-
-            return unsubscribe_PC_snapshot
-
-        } //x5tPcPG5IjOunWfCpdDPwlZGZQA3
-
-
         retrieve();
         friendRequestsRetrieve();
         privChatsRetrieve();
 
 
-    }, [isLoading]);
+    }, [userUID]);
     // NEED TO ADD REMOVE REQUEST FUNCTION HERE
 
     const pendingHandler = async (e: React.FormEvent) => {
