@@ -8,27 +8,40 @@ const db = getFirestore(app);
 
 function ChatShell() {
 
+    const chatID = useParams()["chatID"]
+    const messagesCollection = collection(db, "privateChats/" + chatID + "/messages")
     const [messageBuffer, setMessageBuffer] = useState<string>("")
-
     const [messages, setMessages] = useState()
 
-    const chatID = useParams()["chatID"]
+    const [userUID, setUserUID] = useState<string>("")
+    const [friendUID, setFriendUID] = useState<string>("")
 
     const [userSignedIn, setUserSignedIn] = useState<boolean>(false)
-
-    const [userUID, setUserUID] = useState<string>("")
-
     const [isLoading, setIsLoading] = useState(true)
-
-    const messagesCollection = collection(db, "privateChats/" + chatID + "/messages")
-    //const [chatID, setChatID] = useState()
-
 
     const getChatRoom = async () => {
 
         if (chatID !== undefined) {
             const chatDoc = await getDoc(doc(db, "privateChats", chatID))
+
+            const chatDocData = chatDoc.data()
             console.log(chatDoc.data())
+            if (chatDocData !== undefined) {
+
+                const members: string[] = chatDocData.members
+
+                console.log(members)
+
+                members.forEach((member) => {
+                    if (member !== userUID) {
+                        console.log("member: ", member)
+                        setFriendUID(member)
+                        return
+                    }
+                }
+                )
+            }
+
         }
     }
 
@@ -76,13 +89,12 @@ function ChatShell() {
     }
 
     const sendMessage = async (e: React.FormEvent) => {
-
+        e.preventDefault()
         addDoc(messagesCollection, {
-            message: msg_buffer,
+            message: messageBuffer,
             sender: userUID,
             readers: [userUID, friendUID]
         })
-
     }
 
 
@@ -125,7 +137,7 @@ function ChatShell() {
 
             <div>chat messages insert array of messages here</div>
 
-            <form method="POST">
+            <form onSubmit={sendMessage}>
                 <input placeholder="message" value={messageBuffer} onChange={(e) => setMessageBuffer(e.target.value)} />
                 <input type="submit" />
             </form>
