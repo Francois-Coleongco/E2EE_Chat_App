@@ -26,20 +26,20 @@ const SignUp = () => {
     const [signupClicked, setSignupClicked] = useState<boolean>(false);
     const [baking, setBaking] = useState<boolean | null>(null)
     //
-        //
-        //IF USER WISHES TO THEY CAN DOWNLOAD THE PRIVATE KEY AS A FILE TO BACKUP.
-        //THE PRIVATE KEY WILL BE ENCRYPTED VIA WEB CRYPTO API USING A RANDOMLY GENERATED ENCRYPTION KEY AND IV VIA AES.
-        //
-        //
-        //WHEN USER LOGS IN, THE PRIVATE KEY IN THEIR LOCAL OR SESSION STORAGE WILL BE DECRYPTED AND USABLE FOR DIFFIE HELLMAN KEYEXCHANGE
-        //
-        //
+    //
+    //IF USER WISHES TO THEY CAN DOWNLOAD THE PRIVATE KEY AS A FILE TO BACKUP.
+    //THE PRIVATE KEY WILL BE ENCRYPTED VIA WEB CRYPTO API USING A RANDOMLY GENERATED ENCRYPTION KEY AND IV VIA AES.
+    //
+    //
+    //WHEN USER LOGS IN, THE PRIVATE KEY IN THEIR LOCAL OR SESSION STORAGE WILL BE DECRYPTED AND USABLE FOR DIFFIE HELLMAN KEYEXCHANGE
+    //
+    //
     //
     // NOW IF THE USER WANTS TO UPLOAD THEIR PRIVATE KEY, THE CLIENT SIDE CODE IN ANOTHER PAGE (say: /reinit-key) WILL JSON.parse() THE JSON STRING FROM THE FILE 
     //
     // const [isLoading, setIsLoading] = useState(true);
-    
-    const generateKeys =  async () => {
+
+    const generateKeys = async () => {
         const keypair = await crypto.subtle.generateKey(
             {
                 name: "ECDH",
@@ -48,35 +48,35 @@ const SignUp = () => {
             true,
             ["deriveKey", "deriveBits"]
         )
-            console.log('Key Pair:', keypair);
-            console.log(keypair.publicKey)
-            console.log(keypair.privateKey)
-            // send publicKey to server
-            //
-    try { 
-        const publicKey = await crypto.subtle.exportKey("jwk", keypair.publicKey);
+        console.log('Key Pair:', keypair);
+        console.log(keypair.publicKey)
+        console.log(keypair.privateKey)
+        // send publicKey to server
+        //
+        try {
+            const publicKey = await crypto.subtle.exportKey("jwk", keypair.publicKey);
 
-        // Export the private key
-        const privateKey = await crypto.subtle.exportKey("jwk", keypair.privateKey);
+            // Export the private key
+            const privateKey = await crypto.subtle.exportKey("jwk", keypair.privateKey);
 
-        // Return both keys in an object
-        return { publicKey, privateKey };
-    } catch (err) {
-        console.error("Error generating keys:", err);
-        throw err; // Re-throw error to handle it in the calling function
-    }
+            // Return both keys in an object
+            return { publicKey, privateKey };
+        } catch (err) {
+            console.error("Error generating keys:", err);
+            throw err; // Re-throw error to handle it in the calling function
+        }
 
     }
 
     const writeToFireBase = async (exportedPublicKey: JsonWebKey | undefined, privKeyUnlocker_AES: JsonWebKey | undefined, UID: string) => {
-    
-        
+
+
         console.log(UID)
         const usersDoc = doc(db, "users", UID);
 
 
         console.log(exportedPublicKey)
-        
+
         await setDoc(usersDoc, {
             publicKey: JSON.stringify(exportedPublicKey),
             privateKeyUnlocker: JSON.stringify(privKeyUnlocker_AES),
@@ -93,24 +93,23 @@ const SignUp = () => {
         //
 
         const AES_Key = await AES_Key_Generate()
-        
+
         const privKeyUnlocker = await crypto.subtle.exportKey("jwk", AES_Key)
         const AES_results = await AES_Encrypt_JSON_Web_Key(privateKey, AES_Key)
 
-        const privKeyBlob = new Blob([JSON.stringify(privateKey)], { type: "application/json"})
+        const privKeyBlob = new Blob([JSON.stringify(privateKey)], { type: "application/json" })
 
         setPrivateKeyLink(URL.createObjectURL(privKeyBlob))
-        
-        console.log(AES_results)
 
+        console.log(AES_results)
         // save to localStorage NOW
 
         localStorage.setItem("AES_Priv_Key", JSON.stringify(AES_results))
-    
+
         return privKeyUnlocker
 
     }
-    
+
     const signUpFirebase = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -119,7 +118,7 @@ const SignUp = () => {
             setBaking(true)
 
             console.log("generateKeys start")
-            const { publicKey, privateKey} = await generateKeys()
+            const { publicKey, privateKey } = await generateKeys()
 
             console.log("generateKeys end")
             const auth = getAuth();
@@ -129,20 +128,20 @@ const SignUp = () => {
                 password
             ).then((creds) => {
 
-                    console.log(creds.user.uid)
-                    writeToLocalStorage(privateKey).then((privKeyUnlocker) => {
+                console.log(creds.user.uid)
+                writeToLocalStorage(privateKey).then((privKeyUnlocker) => {
 
-                        writeToFireBase(publicKey, privKeyUnlocker, creds.user.uid)
-                    }
-                    )
+                    writeToFireBase(publicKey, privKeyUnlocker, creds.user.uid)
+                }
+                )
 
 
-                });
-            
-           
+            });
+
+
             console.log(userCreds)
 
-            
+
             setBaking(false)
 
 
@@ -153,39 +152,39 @@ const SignUp = () => {
 
 
     useEffect(() => {
-            const unsubscribe = onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    setUserSignedIn(true);
-                } else {
-                    setUserSignedIn(false);
-                }
-            });
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setUserSignedIn(true);
+            } else {
+                setUserSignedIn(false);
+            }
+        });
 
-            return () => unsubscribe();
-        }, []); // userUID is not set here, its set in signup function
+        return () => unsubscribe();
+    }, []); // userUID is not set here, its set in signup function
 
-   
+
 
     return (
         <>
-        {
-            baking !== null && (
-                <>
-                {
-            baking !== true && (
-                <p>account created! proceed to <a href="dashboard">dashboard</a></p>
-            )
-        }
+            {
+                baking !== null && (
+                    <>
+                        {
+                            baking !== true && (
+                                <p>account created! proceed to <a href="dashboard">dashboard</a></p>
+                            )
+                        }
 
-        {
-            baking === true && (
-                <p>account is baking... please wait</p>
-            )
-        }
-                </>
+                        {
+                            baking === true && (
+                                <p>account is baking... please wait</p>
+                            )
+                        }
+                    </>
 
-            )
-        }
+                )
+            }
             <form onSubmit={signUpFirebase}>
                 <h1>Sign Up</h1>
                 <input
@@ -220,6 +219,6 @@ const SignUp = () => {
             </p>
         </>
     );
-}   
+}
 
 export default SignUp;

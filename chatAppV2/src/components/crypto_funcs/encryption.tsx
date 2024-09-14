@@ -1,9 +1,10 @@
 export const AES_Key_Generate = async () => { // bruh i cant stick to a naming convention idk LOL
-    
+
     const key = crypto.subtle.generateKey(
         {
             name: "AES-GCM",
-            length: 256,        },
+            length: 256,
+        },
         true,
         ["encrypt", "decrypt"]
     );
@@ -14,21 +15,21 @@ export const AES_Key_Generate = async () => { // bruh i cant stick to a naming c
 export const AES_Encrypt_JSON_Web_Key = async (unencrypted: JsonWebKey | undefined, key: CryptoKey) => {
 
     const iv = crypto.getRandomValues(new Uint8Array(12)); // AES-GCM typically uses a 12-byte IV
-  const encodedText = new TextEncoder().encode(JSON.stringify(unencrypted));
+    const encodedText = new TextEncoder().encode(JSON.stringify(unencrypted));
 
-  const encryptedContent = await crypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv: iv,
-    },
-    key,
-    encodedText
-  );
+    const encryptedContent = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv,
+        },
+        key,
+        encodedText
+    );
 
-  return {
-    iv: Array.from(iv),
-    encryptedContent: Array.from(new Uint8Array(encryptedContent))
-  };
+    return {
+        iv: Array.from(iv),
+        encryptedContent: Array.from(new Uint8Array(encryptedContent))
+    };
 }
 
 
@@ -61,36 +62,36 @@ export const AES_Encrypt_JSON_Web_Key = async (unencrypted: JsonWebKey | undefin
 //
 
 
-   const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: CryptoKey) => {
-     const sharedSecret = await crypto.subtle.deriveBits(
-       {
-         name: "ECDH",
-         public: publicKey
-       },
-       privateKey,
-       256 // Length of the derived key in bits for use as the AES 256 encryptor
-     );
+export const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: CryptoKey) => {
+    const sharedSecret = await crypto.subtle.deriveBits(
+        {
+            name: "ECDH",
+            public: publicKey
+        },
+        privateKey,
+        256 // Length of the derived key in bits for use as the AES 256 encryptor
+    );
 
-     return new Uint8Array(sharedSecret);
-   };
+    return new Uint8Array(sharedSecret);
+};
 
 
 
 
 export async function AES_Decrypt_JSON_Web_Key(key: CryptoKey, iv: Uint8Array, encryptedContent: Uint8Array) {
-  const ivBuffer = new Uint8Array(iv);
-  const encryptedBuffer = new Uint8Array(encryptedContent);
+    const ivBuffer = new Uint8Array(iv);
+    const encryptedBuffer = new Uint8Array(encryptedContent);
 
-  const decryptedContent = await crypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv: ivBuffer,
-    },
-    key,
-    encryptedBuffer
-  );
+    const decryptedContent = await crypto.subtle.decrypt(
+        {
+            name: "AES-GCM",
+            iv: ivBuffer,
+        },
+        key,
+        encryptedBuffer
+    );
 
-  const decodedText = new TextDecoder().decode(decryptedContent);
-  return JSON.parse(decodedText);
+    const decodedText = new TextDecoder().decode(decryptedContent);
+    return JSON.parse(decodedText);
 }
 

@@ -52,6 +52,7 @@ function Dashboard() {
 
 
     const [acceptedFriendRelData, setAcceptedFriendRelData] = useState<relationship_data | undefined>();
+    const [friendRequestID, setFriendRequestID] = useState<string>("");
 
     const [requestToDelete, setRequestToDelete] = useState<DocumentReference | undefined>()
 
@@ -153,7 +154,7 @@ function Dashboard() {
             setPrivChats(privChats)
         })
 
-
+        return unsubscribe_PC_snapshot
 
     } //x5tPcPG5IjOunWfCpdDPwlZGZQA3
 
@@ -219,7 +220,7 @@ function Dashboard() {
                 sender: userUID,
                 sender_pub_key: usrData?.publicKey,
                 request_status: false,
-                reqeusted_pub_key: "unknown"
+                requested_pub_key: "unknown"
             });
 
         }
@@ -247,8 +248,8 @@ function Dashboard() {
             await setDoc(acceptedFriendRelData.doc_ref, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
 
             await addDoc(collection(db, "privateChats"), {
-                members: [userUID, acceptedFriendRelData.doc_data.requested]
-
+                members: [userUID, acceptedFriendRelData.doc_data.requested],
+                friendRequestsID: friendRequestID
             })
 
             // this is what you use for the link in URL params => privChatDoc.id
@@ -361,6 +362,7 @@ function Dashboard() {
                                                 <button type="submit" onClick={
                                                     () => {
                                                         setAcceptedFriendRelData(rel_data)
+                                                        setFriendRequestID(rel_data.doc_ref.id)
                                                     }
                                                 }>accept</button>
                                             </form>

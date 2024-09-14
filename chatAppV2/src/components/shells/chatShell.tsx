@@ -1,9 +1,9 @@
-import { getFirestore, doc, collection, getDoc, onSnapshot, DocumentSnapshot, query, QuerySnapshot, where, addDoc } from "firebase/firestore";
+import { getFirestore, doc, collection, getDoc, onSnapshot, DocumentSnapshot, query, QuerySnapshot, where, addDoc, getDocs } from "firebase/firestore";
 import { app, auth } from "../../firebase";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-
+import { AES_Decrypt_JSON_Web_Key, deriveSharedSecret } from "../crypto_funcs/encryption"
 const db = getFirestore(app);
 
 function ChatShell() {
@@ -18,6 +18,8 @@ function ChatShell() {
 
     const [userSignedIn, setUserSignedIn] = useState<boolean>(false)
     const [isLoading, setIsLoading] = useState(true)
+
+    const [friendRequestsID, setFriendRequestsID] = useState<string>("")
 
     const getChatRoom = async () => {
 
@@ -40,11 +42,52 @@ function ChatShell() {
                     }
                 }
                 )
+
+                const frID = chatDocData.friendRequestsID
+
+                setFriendRequestsID(frID)
+
+                console.log(frID)
             }
 
         }
     }
 
+    const getPublicAndPrivateKeys = async () => {
+        // access friendRequests to get get publicKeys
+        // access user's localStorage and unlock the privateKey
+
+        const friendDoc = await getDoc(doc(db, "friendRequests", friendRequestsID))
+
+        const docData = friendDoc.data()
+
+        if (docData !== undefined) {
+            const requested_user = docData.requested
+
+            if (requested_user === userUID) {
+                const otherUserPubKey = JSON.parse(docData.sender_pub_key)
+
+                const encryptedPrivKeyAndIV = localStorage.getItem("AES_Priv_Key")
+
+                const encryptedPrivKeyAndIV_JSON = JSON.parse(encryptedPrivKeyAndIV)
+
+                let privKey: string;
+
+                if (encryptedPrivKeyAndIV !== null) {
+                    const iv = encryptedPrivKeyAndIV_JSON.iv
+                    const encryptedContent = encryptedPrivKeyAndIV_JSON.encryptedContent
+
+                    // key (privKeyUnlocker) is found in the firestore user collection
+                    privKey = AES_Decrypt_JSON_Web_Key(key, iv, encryptedContent)
+                }
+
+
+            }
+        }
+
+
+
+    }
 
     const getMessages = () => {
 
@@ -123,7 +166,9 @@ function ChatShell() {
 
         getMessages();
 
-        getChatRoom();
+        getChatRoom().then(() => {
+            getPublicAndPrivateKeys()
+        });
     }, [userUID])
 
 
