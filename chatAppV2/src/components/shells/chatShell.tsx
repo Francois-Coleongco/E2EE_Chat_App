@@ -24,6 +24,7 @@ function ChatShell() {
     const getChatRoom = async () => {
 
         if (chatID !== undefined) {
+            console.log(chatID)
             const chatDoc = await getDoc(doc(db, "privateChats", chatID))
 
             const chatDocData = chatDoc.data()
@@ -49,44 +50,63 @@ function ChatShell() {
 
                 console.log(frID)
             }
-
         }
+
+
     }
 
     const getPublicAndPrivateKeys = async () => {
         // access friendRequests to get get publicKeys
         // access user's localStorage and unlock the privateKey
-
+        console.log(friendRequestsID)
         const friendDoc = await getDoc(doc(db, "friendRequests", friendRequestsID))
 
         const docData = friendDoc.data()
 
+
         if (docData !== undefined) {
+            console.log("did i run?")
             const requested_user = docData.requested
+            const sender_user = docData.sender
+            let pubKey: JsonWebKey | undefined;
 
             if (requested_user === userUID) {
-                const otherUserPubKey = JSON.parse(docData.sender_pub_key)
+                pubKey = JSON.parse(docData.sender_pub_key)
+            } else if (sender_user === userUID) {
+                pubKey = JSON.parse(docData.requested_pub_key)
+            }
+            else {
+                console.log("err")
+            }
+            console.log(pubKey)
+            const encryptedPrivKeyAndIV = localStorage.getItem("AES_Priv_Key")
 
-                const encryptedPrivKeyAndIV = localStorage.getItem("AES_Priv_Key")
+            if (encryptedPrivKeyAndIV !== null) {
+                console.log(encryptedPrivKeyAndIV)
 
-                const encryptedPrivKeyAndIV_JSON = JSON.parse(encryptedPrivKeyAndIV)
+                const parsedEncryptedPrivKeyAndIV = JSON.parse(encryptedPrivKeyAndIV)
 
-                let privKey: string;
 
-                if (encryptedPrivKeyAndIV !== null) {
-                    const iv = encryptedPrivKeyAndIV_JSON.iv
-                    const encryptedContent = encryptedPrivKeyAndIV_JSON.encryptedContent
+                const iv = new Uint8Array(parsedEncryptedPrivKeyAndIV.iv);
+                const encryptedPrivKey = new Uint8Array(parsedEncryptedPrivKeyAndIV.encryptedContent);
 
-                    // key (privKeyUnlocker) is found in the firestore user collection
-                    privKey = AES_Decrypt_JSON_Web_Key(key, iv, encryptedContent)
-                }
+                console.log(iv, encryptedPrivKey)
 
+                const userDoc = await getDoc(doc(db, "users", userUID))
+
+                const privKeyUnlocker = JSON.parse(userDoc.data()?.privateKeyUnlocker)
+
+                console.log(privKeyUnlocker)
+
+                //priv key unlocker ready
+
+                const result = await AES_Decrypt_JSON_Web_Key(privKeyUnlocker, iv, encryptedPrivKey) // says privKeyUnlocker is not of type cryptokey
+                console.log(JSON.parse(result))
 
             }
+
+            // key (privKeyUnlocker) is found in the firestore user collection
         }
-
-
-
     }
 
     const getMessages = () => {
@@ -166,12 +186,17 @@ function ChatShell() {
 
         getMessages();
 
-        getChatRoom().then(() => {
-            getPublicAndPrivateKeys()
-        });
-    }, [userUID])
+        console.log(userUID)
+        console.log(chatID)
+        getChatRoom()
+
+    }, [userUID, chatID])
 
 
+    useEffect(() => {
+        console.log(friendRequestsID)
+        getPublicAndPrivateKeys()
+    }, [friendRequestsID])
 
     // focus on getting the messages sent first then add the key derivation then the encryption
 

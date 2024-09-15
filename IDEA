@@ -1,0 +1,16 @@
+privkeyunlocker is string in storage
+convert string to jsonwebkey
+convert jsonwebkey to cryptokey
+
+privkeyunlocker is aes_sym key for privkey which is in local storage
+
+aes decrypt privkey with privkeyunlocker and return cryptokey of privkey
+
+
+use privkey cryptokey to deriveSharedSecrete
+
+
+-----------
+
+decrypt privkey
+convert to cryptokey

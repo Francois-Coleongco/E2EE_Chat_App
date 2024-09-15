@@ -248,7 +248,7 @@ function Dashboard() {
             await setDoc(acceptedFriendRelData.doc_ref, { request_status: true, requested_pub_key: usrData?.publicKey }, { merge: true });
 
             await addDoc(collection(db, "privateChats"), {
-                members: [userUID, acceptedFriendRelData.doc_data.requested],
+                members: [userUID, acceptedFriendRelData.doc_data.sender],
                 friendRequestsID: friendRequestID
             })
 

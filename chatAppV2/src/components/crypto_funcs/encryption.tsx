@@ -62,11 +62,21 @@ export const AES_Encrypt_JSON_Web_Key = async (unencrypted: JsonWebKey | undefin
 //
 
 
-export const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: CryptoKey) => {
+export const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: JsonWebKey) => {
+    const importedKey = await crypto.subtle.importKey(
+        'jwk',
+        publicKey,
+        {
+            name: 'AES-GCM',
+            length: 256 // Adjust this depending on the key length
+        },
+        true, // Extractable
+        ['encrypt', 'decrypt']
+    );
     const sharedSecret = await crypto.subtle.deriveBits(
         {
             name: "ECDH",
-            public: publicKey
+            public: importedKey
         },
         privateKey,
         256 // Length of the derived key in bits for use as the AES 256 encryptor
@@ -78,20 +88,25 @@ export const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: Crypt
 
 
 
-export async function AES_Decrypt_JSON_Web_Key(key: CryptoKey, iv: Uint8Array, encryptedContent: Uint8Array) {
-    const ivBuffer = new Uint8Array(iv);
-    const encryptedBuffer = new Uint8Array(encryptedContent);
-
+export async function AES_Decrypt_JSON_Web_Key(key: JsonWebKey, iv: Uint8Array, encryptedContent: Uint8Array) {
+    const cryptoKey = await crypto.subtle.importKey(
+        'jwk',                               // Key format
+        key,                                 // JWK key data
+        { name: 'AES-GCM', length: 256 },    // Algorithm
+        false,                               // Extractable
+        ['decrypt']                          // Key usage
+    );
     const decryptedContent = await crypto.subtle.decrypt(
         {
-            name: "AES-GCM",
-            iv: ivBuffer,
+            name: 'AES-GCM',
+            iv: iv,                            // Initialization vector
         },
-        key,
-        encryptedBuffer
+        cryptoKey,                          // Imported AES-GCM key
+        encryptedContent                    // Encrypted content
     );
+    const decoder = new TextDecoder('utf-8');
+    const jsonString = decoder.decode(decryptedContent);
 
-    const decodedText = new TextDecoder().decode(decryptedContent);
-    return JSON.parse(decodedText);
+    return jsonString
 }
 
