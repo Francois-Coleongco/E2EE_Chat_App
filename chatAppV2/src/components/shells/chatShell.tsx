@@ -81,7 +81,7 @@ function ChatShell() {
             console.log(pubKey)
             const encryptedPrivKeyAndIV = localStorage.getItem("AES_Priv_Key")
 
-            if (encryptedPrivKeyAndIV !== null) {
+            if (encryptedPrivKeyAndIV !== null && pubKey !== undefined) {
                 console.log(encryptedPrivKeyAndIV)
 
                 const parsedEncryptedPrivKeyAndIV = JSON.parse(encryptedPrivKeyAndIV)
@@ -101,7 +101,11 @@ function ChatShell() {
                 //priv key unlocker ready
 
                 const result = await AES_Decrypt_JSON_Web_Key(privKeyUnlocker, iv, encryptedPrivKey) // says privKeyUnlocker is not of type cryptokey
-                console.log(JSON.parse(result))
+                const privateKey = JSON.parse(result)// this is the private key
+
+                const shared_secret_u8 = await deriveSharedSecret(privateKey, pubKey)
+
+                shared_secret_u8
 
             }
 

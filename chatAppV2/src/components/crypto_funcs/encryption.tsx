@@ -73,7 +73,7 @@ export const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: JsonW
         true, // Extractable
         ['encrypt', 'decrypt']
     );
-    const sharedSecret = await crypto.subtle.deriveBits(
+    const sharedSecret = await crypto.subtle.deriveKey(YIOU NEEDA FIX THE SHIT OUTTA THISSS why did you use deriveBits instead of derive key : sob: okay whatever you know what to do.OWEJGIOWRJIOGJWRIOG
         {
             name: "ECDH",
             public: importedKey
