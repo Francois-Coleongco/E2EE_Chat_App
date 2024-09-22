@@ -62,29 +62,45 @@ export const AES_Encrypt_JSON_Web_Key = async (unencrypted: JsonWebKey | undefin
 //
 
 
-export const deriveSharedSecret = async (privateKey: CryptoKey, publicKey: JsonWebKey) => {
-    const importedKey = await crypto.subtle.importKey(
-        'jwk',
-        publicKey,
+export const deriveSharedSecret = async (privateKey: JsonWebKey, publicKey: JsonWebKey) => {
+
+    const importedPrivKey = await crypto.subtle.importKey(
+        'jwk', // Key format
+        privateKey, // Your JWK object
         {
-            name: 'AES-GCM',
-            length: 256 // Adjust this depending on the key length
+            name: 'ECDH', // Specify ECDH for public keys
+            namedCurve: 'P-521' // Specify the named curve used for the key
         },
-        true, // Extractable
-        ['encrypt', 'decrypt']
+        false, // Extractable
+        ["deriveKey"] // No key usages for the public key
     );
-    const sharedSecret = await crypto.subtle.deriveKey(YIOU NEEDA FIX THE SHIT OUTTA THISSS why did you use deriveBits instead of derive key : sob: okay whatever you know what to do.OWEJGIOWRJIOGJWRIOG
+
+    const importedPubKey = await crypto.subtle.importKey(
+        'jwk', // Key format
+        publicKey, // Your JWK object
+        {
+            name: 'ECDH', // Specify ECDH for public keys
+            namedCurve: 'P-521' // Specify the named curve used for the key
+        },
+        false, // Extractable
+        [] // No key usages for the public key
+    );
+
+    return window.crypto.subtle.deriveKey(
         {
             name: "ECDH",
-            public: importedKey
+            public: importedPubKey,
         },
-        privateKey,
-        256 // Length of the derived key in bits for use as the AES 256 encryptor
+        importedPrivKey,
+        {
+            name: "AES-GCM",
+            length: 256,
+        },
+        false,
+        ["encrypt", "decrypt"],
     );
 
-    return new Uint8Array(sharedSecret);
 };
-
 
 
 

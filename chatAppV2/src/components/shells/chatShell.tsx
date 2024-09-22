@@ -101,12 +101,13 @@ function ChatShell() {
                 //priv key unlocker ready
 
                 const result = await AES_Decrypt_JSON_Web_Key(privKeyUnlocker, iv, encryptedPrivKey) // says privKeyUnlocker is not of type cryptokey
-                const privateKey = JSON.parse(result)// this is the private key
+                const privateKey: JsonWebKey = JSON.parse(result)// this is the private key
 
-                const shared_secret_u8 = await deriveSharedSecret(privateKey, pubKey)
-
-                shared_secret_u8
-
+                console.log("privateKey", privateKey)
+                console.log("publicKey", pubKey)
+                const shared_secret_key = await deriveSharedSecret(privateKey, pubKey).then((crypto_key) => {
+                    console.log(crypto_key) // ITS WORKINGGGG ITS WORKINGGG
+                })
             }
 
             // key (privKeyUnlocker) is found in the firestore user collection
