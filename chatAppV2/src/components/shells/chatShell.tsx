@@ -105,9 +105,12 @@ function ChatShell() {
 
                 console.log("privateKey", privateKey)
                 console.log("publicKey", pubKey)
-                const shared_secret_key = await deriveSharedSecret(privateKey, pubKey).then((crypto_key) => {
+                await deriveSharedSecret(privateKey, pubKey).then((crypto_key) => {
                     console.log(crypto_key) // ITS WORKINGGGG ITS WORKINGGG
+                    sessionStorage.setItem("sym-key", JSON.stringify(crypto_key))
                 })
+
+
             }
 
             // key (privKeyUnlocker) is found in the firestore user collection
@@ -143,7 +146,7 @@ function ChatShell() {
                     }
                 )
             }, (err) => {
-                console.log("poopsie whoopsie")
+                console.log(err)
             })
 
             return unsubscribe_message_snapshot
