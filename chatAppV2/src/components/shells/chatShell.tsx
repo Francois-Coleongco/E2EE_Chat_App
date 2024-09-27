@@ -3,8 +3,9 @@ import { app, auth } from "../../firebase";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { getPublicAndPrivateKeys } from "../crypto_funcs/crypto_msgs";
+import { getPublicAndPrivateKeys, AES_Encrypt_Message } from "../crypto_funcs/crypto_msgs";
 import { getMessages, sendMessage } from "../msg_utils";
+import { AES_Encrypt_JSON_Web_Key } from "../crypto_funcs/encryption";
 const db = getFirestore(app);
 
 function ChatShell() {
@@ -57,8 +58,9 @@ function ChatShell() {
 
     const sendMessageHandler = async (e: React.FormEvent) => {
         e.preventDefault()
-
-        sendMessage(messagesCollection, messageBuffer, userUID, friendUID)
+// for now just 
+        const encryptMessage = AES_Encrypt_Message(messageBuffer)
+        sendMessage(messagesCollection, JSON.stringify(encryptMessage), userUID, friendUID)
     }
 
 

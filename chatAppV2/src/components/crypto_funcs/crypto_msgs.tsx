@@ -58,7 +58,6 @@ export const getPublicAndPrivateKeys = async (
             await deriveSharedSecret(privateKey, pubKey).then((crypto_key: CryptoKey) => {
                 console.log(crypto_key) // ITS WORKINGGGG ITS WORKINGGG
                 sessionStorage.setItem("sym-key", JSON.stringify(crypto_key)) // this will remain until the browser tab/window is closed
-
             })
 
         }
@@ -68,3 +67,19 @@ export const getPublicAndPrivateKeys = async (
 }
 
 
+export const AES_Encrypt_Message = (message: string) => {
+    // message is plain text as a stringggg
+
+    const encoded_message = new TextEncoder().encode(message)
+    const key_string = sessionStorage.getItem("sym-key")
+
+    if (key_string !== null) {
+            const key = JSON.parse(key_string)
+const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        encoded_message,
+    );
+    }
+}
