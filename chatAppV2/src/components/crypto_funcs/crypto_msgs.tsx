@@ -67,19 +67,30 @@ export const getPublicAndPrivateKeys = async (
 }
 
 
-export const AES_Encrypt_Message = (message: string) => {
+export const AES_Encrypt_Message = async (message: string) => {
     // message is plain text as a stringggg
 
     const encoded_message = new TextEncoder().encode(message)
     const key_string = sessionStorage.getItem("sym-key")
 
     if (key_string !== null) {
-            const key = JSON.parse(key_string)
-const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    return window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        encoded_message,
-    );
+        const key = JSON.parse(key_string)
+        const key_crypto = await crypto.subtle.importKey(
+            'jwk', // Key format
+            key, // Your JWK object
+            {
+                name: 'ECDH', // Specify ECDH for public keys
+                namedCurve: 'P-521' // Specify the named curve used for the key
+            },
+            false, // Extractable
+            ["deriveKey"] // No key usages for the public key
+        );
+
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        return window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            key_crypto,
+            encoded_message, do i need to add the iv here ? i forgot xd
+        );
     }
 }
