@@ -12,13 +12,14 @@ export const getPublicAndPrivateKeys = async (
     const friendDoc = await getDoc(doc(db, "friendRequests", friendRequestsID))
 
 
+    let pubKey: JsonWebKey | undefined;
+    let privateKey: JsonWebKey | undefined;
     const docData = friendDoc.data()
 
     if (docData !== undefined) {
         console.log("did i run?")
         const requested_user = docData.requested
         const sender_user = docData.sender
-        let pubKey: JsonWebKey | undefined;
 
         if (requested_user === userUID) {
             pubKey = JSON.parse(docData.sender_pub_key)
@@ -31,6 +32,7 @@ export const getPublicAndPrivateKeys = async (
         console.log(pubKey)
         const encryptedPrivKeyAndIV = localStorage.getItem("AES_Priv_Key")
 
+        console.log(encryptedPrivKeyAndIV, pubKey)
         if (encryptedPrivKeyAndIV !== null && pubKey !== undefined) {
             console.log(encryptedPrivKeyAndIV)
 
@@ -51,46 +53,40 @@ export const getPublicAndPrivateKeys = async (
             //priv key unlocker ready
 
             const result = await AES_Decrypt_JSON_Web_Key(privKeyUnlocker, iv, encryptedPrivKey) // says privKeyUnlocker is not of type cryptokey
-            const privateKey: JsonWebKey = JSON.parse(result)// this is the private key
+            privateKey = JSON.parse(result)// this is the private key
 
             console.log("privateKey", privateKey)
             console.log("publicKey", pubKey)
-            await deriveSharedSecret(privateKey, pubKey).then((crypto_key: CryptoKey) => {
-                console.log(crypto_key) // ITS WORKINGGGG ITS WORKINGGG
-                sessionStorage.setItem("sym-key", JSON.stringify(crypto_key)) // this will remain until the browser tab/window is closed
-            })
+
 
         }
 
         // key (privKeyUnlocker) is found in the firestore user collection
     }
+
+    const crypto_key = await deriveSharedSecret(privateKey, pubKey)
+    return crypto_key
+
 }
 
 
-export const AES_Encrypt_Message = async (message: string) => {
+export const AES_Encrypt_Message = async (message: string, key: CryptoKey) => {
     // message is plain text as a stringggg
 
     const encoded_message = new TextEncoder().encode(message)
-    const key_string = sessionStorage.getItem("sym-key")
 
-    if (key_string !== null) {
-        const key = JSON.parse(key_string)
-        const key_crypto = await crypto.subtle.importKey(
-            'jwk', // Key format
-            key, // Your JWK object
-            {
-                name: 'ECDH', // Specify ECDH for public keys
-                namedCurve: 'P-521' // Specify the named curve used for the key
-            },
-            false, // Extractable
-            ["deriveKey"] // No key usages for the public key
-        );
 
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        return window.crypto.subtle.encrypt(
+    console.log(encoded_message)
+    console.log(key)
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    console.log(iv)
+    return {
+        iv: iv,
+        encrypted_content: window.crypto.subtle.encrypt(
             { name: "AES-GCM", iv: iv },
-            key_crypto,
-            encoded_message, do i need to add the iv here ? i forgot xd
-        );
+            key,
+            encoded_message,
+        ),
     }
+
 }

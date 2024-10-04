@@ -18,6 +18,9 @@ function ChatShell() {
 
     const [friendRequestsID, setFriendRequestsID] = useState<string>("")
 
+    const [symKey, setSymKey] = useState<CryptoKey>()
+
+
     const getChatRoom = async () => {
 
         if (chatID !== undefined) {
@@ -58,9 +61,15 @@ function ChatShell() {
     const sendMessageHandler = async (e: React.FormEvent) => {
         e.preventDefault()
         // for now just 
-        await AES_Encrypt_Message(messageBuffer).then((encrypted_message) => {
-            sendMessage(messagesCollection, JSON.stringify(encrypted_message), userUID, friendUID)
-        })
+        console.log(messageBuffer)
+
+        if (symKey !== undefined) {
+            await AES_Encrypt_Message(messageBuffer, symKey).then((e) => {
+                console.log(e)
+                sendMessage(messagesCollection, JSON.stringify(e), userUID, friendUID)
+            })
+        }
+
     }
 
 
@@ -87,6 +96,7 @@ function ChatShell() {
         if (chatID !== undefined) {
 
             getMessages(chatID, messagesCollection, userUID);
+
         }
 
         console.log(userUID)
@@ -98,7 +108,11 @@ function ChatShell() {
 
     useEffect(() => {
         console.log(friendRequestsID)
-        getPublicAndPrivateKeys(friendRequestsID, userUID, db)
+        const crypto_key = getPublicAndPrivateKeys(friendRequestsID, userUID, db)
+
+        crypto_key.then((key) => {
+            setSymKey(key)
+        })
     }, [friendRequestsID])
 
     // focus on getting the messages sent first then add the key derivation then the encryption

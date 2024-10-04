@@ -62,44 +62,55 @@ export const AES_Encrypt_JSON_Web_Key = async (unencrypted: JsonWebKey | undefin
 //
 
 
-export const deriveSharedSecret = async (privateKey: JsonWebKey, publicKey: JsonWebKey) => {
+export const deriveSharedSecret = async (privateKey: JsonWebKey | undefined, publicKey: JsonWebKey | undefined) => {
 
-    const importedPrivKey = await crypto.subtle.importKey(
-        'jwk', // Key format
-        privateKey, // Your JWK object
-        {
-            name: 'ECDH', // Specify ECDH for public keys
-            namedCurve: 'P-521' // Specify the named curve used for the key
-        },
-        false, // Extractable
-        ["deriveKey"] // No key usages for the public key
-    );
+    if (privateKey !== undefined && publicKey !== undefined) {
 
-    const importedPubKey = await crypto.subtle.importKey(
-        'jwk', // Key format
-        publicKey, // Your JWK object
-        {
-            name: 'ECDH', // Specify ECDH for public keys
-            namedCurve: 'P-521' // Specify the named curve used for the key
-        },
-        false, // Extractable
-        [] // No key usages for the public key
-    );
+        const importedPrivKey = await crypto.subtle.importKey(
+            'jwk', // Key format
+            privateKey, // Your JWK object
+            {
+                name: 'ECDH', // Specify ECDH for public keys
+                namedCurve: 'P-521' // Specify the named curve used for the key
+            },
+            false, // Extractable
+            ["deriveKey"] // No key usages for the public key
+        );
 
-    return window.crypto.subtle.deriveKey(
-        {
-            name: "ECDH",
-            public: importedPubKey,
-        },
-        importedPrivKey,
-        {
-            name: "AES-GCM",
-            length: 256,
-        },
-        false,
-        ["encrypt", "decrypt"],
-    );
+        const importedPubKey = await crypto.subtle.importKey(
+            'jwk', // Key format
+            publicKey, // Your JWK object
+            {
+                name: 'ECDH', // Specify ECDH for public keys
+                namedCurve: 'P-521' // Specify the named curve used for the key
+            },
+            false, // Extractable
+            [] // No key usages for the public key
+        );
 
+        const crypto_key = await window.crypto.subtle.deriveKey(
+            {
+                name: "ECDH",
+                public: importedPubKey,
+            },
+            importedPrivKey,
+            {
+                name: "AES-GCM",
+                length: 256,
+            },
+            true,
+            ["encrypt", "decrypt"],
+        );
+
+        console.log(crypto_key)
+
+
+        return crypto_key
+
+    }
+    else {
+        return undefined
+    }
 };
 
 

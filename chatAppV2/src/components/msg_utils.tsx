@@ -11,6 +11,7 @@ export const sendMessage = async (
         sender: userUID,
         readers: [userUID, friendUID]
     })
+    console.log("SUCCESS")
 }
 
 
@@ -27,6 +28,7 @@ export const getMessages = (
 
         // using privChatDocRef, get the privChatMessages
         //
+        console.log()
         //
         //
         console.log(chatID)
