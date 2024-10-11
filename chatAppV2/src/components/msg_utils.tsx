@@ -1,4 +1,5 @@
-import { CollectionReference, DocumentSnapshot, QuerySnapshot, addDoc, onSnapshot, where, query } from "firebase/firestore"
+import { CollectionReference, DocumentSnapshot, QuerySnapshot, addDoc, onSnapshot, where, query, Timestamp } from "firebase/firestore"
+import { AES_Decrypt_Message } from "./crypto_funcs/crypto_msgs"
 
 export const sendMessage = async (
     messagesCollection: CollectionReference,
@@ -9,7 +10,8 @@ export const sendMessage = async (
     addDoc(messagesCollection, {
         message: messageBuffer,
         sender: userUID,
-        readers: [userUID, friendUID]
+        readers: [userUID, friendUID],
+        time_sent: Timestamp.now()
     })
     console.log("SUCCESS")
 }
@@ -19,6 +21,7 @@ export const getMessages = (
     chatID: string | undefined,
     messagesCollection: CollectionReference,
     userUID: string,
+    key: CryptoKey | undefined,
 ) => {
 
     if (chatID !== undefined) {
@@ -27,9 +30,6 @@ export const getMessages = (
         // get documents in the privchatdocument
 
         // using privChatDocRef, get the privChatMessages
-        //
-        console.log()
-        //
         //
         console.log(chatID)
         const q = query(messagesCollection, where("readers", "array-contains", userUID))
@@ -44,6 +44,14 @@ export const getMessages = (
             QuerySnap.forEach(
                 (doc: DocumentSnapshot) => {
                     console.log(doc.data()) // this is the message
+                    const iv = JSON.parse(doc.data()?.message).iv
+                    const content = JSON.parse(doc.data()?.message).encrypted_content
+                    if (key !== undefined) {
+                        const message = AES_Decrypt_Message(content, iv, key)
+                        message.then((msg) => {
+                            console.log(msg)
+                        })
+                    }
                     messages.push(JSON.stringify(doc.data()))
                 }
             )

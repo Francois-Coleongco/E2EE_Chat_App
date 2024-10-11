@@ -70,6 +70,8 @@ export const getPublicAndPrivateKeys = async (
 }
 
 
+
+
 export const AES_Encrypt_Message = async (message: string, key: CryptoKey) => {
     // message is plain text as a stringggg
 
@@ -80,13 +82,51 @@ export const AES_Encrypt_Message = async (message: string, key: CryptoKey) => {
     console.log(key)
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     console.log(iv)
+
+    const encrypted_content = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        encoded_message,
+    )
+
+    console.log(encrypted_content)
+
+    const stringified_encrypted_content = JSON.stringify(new Uint8Array(encrypted_content))
+
+    console.log(stringified_encrypted_content)
+
     return {
         iv: iv,
-        encrypted_content: window.crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: iv },
-            key,
-            encoded_message,
-        ),
+        encrypted_content: stringified_encrypted_content,
     }
+
+}
+
+export const AES_Decrypt_Message = async (encrypted_message: string, iv: Uint8Array, key: CryptoKey) => {
+
+    console.log(key)
+    console.log(iv)
+
+    console.log(encrypted_message)
+
+    const encrypted_message_uint8_arr = JSON.parse(encrypted_message)
+
+    console.log("encrypted_message_uint8_arr", encrypted_message_uint8_arr)
+
+    const encrypted_message_arr_buff = encrypted_message_uint8_arr.buffer
+
+    console.log("encrypted_message_arr_buff", encrypted_message_arr_buff)
+
+    const decrypted_content = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        encrypted_message_arr_buff,
+    )
+
+    console.log(decrypted_content)
+
+    const decoded_content = new TextDecoder().decode(decrypted_content)
+
+    return decoded_content
 
 }

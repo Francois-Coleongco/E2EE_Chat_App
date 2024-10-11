@@ -15,6 +15,7 @@ import {
     DocumentReference,
     DocumentSnapshot,
     deleteDoc,
+    Timestamp,
 } from "firebase/firestore";
 import DOMPurify from "dompurify";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -179,15 +180,17 @@ function Dashboard() {
 
 
     useEffect(() => {
-
-
         retrieve();
         friendRequestsRetrieve();
-        privChatsRetrieve();
 
 
     }, [userUID]);
     // NEED TO ADD REMOVE REQUEST FUNCTION HERE
+
+    useEffect(() => {
+        privChatsRetrieve();
+
+    })
 
     const pendingHandler = async (e: React.FormEvent) => {
         // this is where to initiate publicKey exchange.
