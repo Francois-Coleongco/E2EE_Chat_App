@@ -25,20 +25,20 @@ function ChatShell() {
     const getChatRoom = async () => {
 
         if (chatID !== undefined) {
-            console.log(chatID)
+            //console.log(chatID)
             const chatDoc = await getDoc(doc(db, "privateChats", chatID))
 
             const chatDocData = chatDoc.data()
-            console.log(chatDoc.data())
+            //console.log(chatDoc.data())
             if (chatDocData !== undefined) {
 
                 const members: string[] = chatDocData.members
 
-                console.log(members)
+                //console.log(members)
 
                 members.forEach((member) => {
                     if (member !== userUID) {
-                        console.log("member: ", member)
+                        //console.log("member: ", member)
                         setFriendUID(member)
                         return
                     }
@@ -49,7 +49,7 @@ function ChatShell() {
 
                 setFriendRequestsID(frID)
 
-                console.log(frID)
+                //console.log(frID)
             }
         }
 
@@ -62,12 +62,12 @@ function ChatShell() {
     const sendMessageHandler = async (e: React.FormEvent) => {
         e.preventDefault()
         // for now just 
-        console.log(messageBuffer)
+        //console.log(messageBuffer)
 
-        console.log(symKey)
+        //console.log(symKey)
         if (symKey !== undefined) {
             await AES_Encrypt_Message(messageBuffer, symKey).then((encrypted_message) => {
-                console.log(encrypted_message)
+                //console.log(encrypted_message)
                 sendMessage(messagesCollection, JSON.stringify(encrypted_message), userUID, friendUID)
             })
         }
@@ -79,11 +79,11 @@ function ChatShell() {
 
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("user is currently logged in");
-                console.log(user);
+                //console.log("user is currently logged in");
+                //console.log(user);
                 setUserUID(user.uid);
             } else {
-                console.log("no user");
+                //console.log("no user");
             }
         });
         return unsubscribe;
@@ -93,22 +93,20 @@ function ChatShell() {
 
 
     useEffect(() => {
-        console.log(userUID)
-        console.log(userUID)
-        console.log(chatID)
+        //console.log(userUID)
+        //console.log(userUID)
+        //console.log(chatID)
 
         if (chatID !== undefined) {
-
             getMessages(chatID, messagesCollection, userUID, symKey);
-
         }
         getChatRoom()
 
-    }, [userUID, chatID])
+    }, [loadingKeys])
 
 
     useEffect(() => {
-        console.log(friendRequestsID)
+        //console.log(friendRequestsID)
         const crypto_key = getPublicAndPrivateKeys(friendRequestsID, userUID, db)
 
         crypto_key.then((key) => {
@@ -117,6 +115,8 @@ function ChatShell() {
             setLoadingKeys(false)
         })
     }, [friendRequestsID])
+
+
 
     // focus on getting the messages sent first then add the key derivation then the encryption
 

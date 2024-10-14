@@ -13,7 +13,7 @@ export const sendMessage = async (
         readers: [userUID, friendUID],
         time_sent: Timestamp.now()
     })
-    console.log("SUCCESS")
+    //console.log("SUCCESS")
 }
 
 
@@ -31,10 +31,10 @@ export const getMessages = (
 
         // using privChatDocRef, get the privChatMessages
         //
-        console.log(chatID)
+        //console.log(chatID)
         const q = query(messagesCollection, where("readers", "array-contains", userUID))
-        console.log(q)
-        console.log(userUID)
+        //console.log(q)
+        //console.log(userUID)
 
         const unsubscribe_message_snapshot = onSnapshot(q, (QuerySnap: QuerySnapshot) => {
 
@@ -43,28 +43,38 @@ export const getMessages = (
 
             QuerySnap.forEach(
                 (doc: DocumentSnapshot) => {
-                    console.log(doc.data()) // this is the message
+                    //console.log(doc.data()) // this is the message
+                    //console.log(key)
                     const iv = JSON.parse(doc.data()?.message).iv
+                    //console.log(iv)
                     const content = JSON.parse(doc.data()?.message).encrypted_content
+                    //console.log(content)
                     if (key !== undefined) {
-                        const message = AES_Decrypt_Message(content, iv, key)
-                        message.then((msg) => {
-                            console.log(msg)
-                        })
+                        //console.log("hit here")
+                        AES_Decrypt_Message(content, iv, key).then((message) => {
+                            console.log("should show message")
+                            console.log(message)
+                        }).catch((err) => {
+                            console.log(err)
+                        }
+                        )
+                        //console.log("test")
                     }
                     messages.push(JSON.stringify(doc.data()))
                 }
             )
+
         }, (err: Error) => {
-            console.log(err)
+            //console.log(err)
         })
+
 
         return unsubscribe_message_snapshot
 
     }
 
     else {
-        console.log("WHOOPS chatID is somehow undefined...");
+        //console.log("WHOOPS chatID is somehow undefined...");
     }
 
 }

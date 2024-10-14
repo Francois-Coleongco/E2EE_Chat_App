@@ -8,7 +8,7 @@ export const getPublicAndPrivateKeys = async (
 ) => {
     // access friendRequests to get get publicKeys
     // access user's localStorage and unlock the privateKey
-    console.log(friendRequestsID)
+    //console.log(friendRequestsID)
     const friendDoc = await getDoc(doc(db, "friendRequests", friendRequestsID))
 
 
@@ -17,7 +17,7 @@ export const getPublicAndPrivateKeys = async (
     const docData = friendDoc.data()
 
     if (docData !== undefined) {
-        console.log("did i run?")
+        //console.log("did i run?")
         const requested_user = docData.requested
         const sender_user = docData.sender
 
@@ -27,14 +27,14 @@ export const getPublicAndPrivateKeys = async (
             pubKey = JSON.parse(docData.requested_pub_key)
         }
         else {
-            console.log("err")
+            //console.log("err")
         }
-        console.log(pubKey)
+        //console.log(pubKey)
         const encryptedPrivKeyAndIV = localStorage.getItem("AES_Priv_Key")
 
-        console.log(encryptedPrivKeyAndIV, pubKey)
+        //console.log(encryptedPrivKeyAndIV, pubKey)
         if (encryptedPrivKeyAndIV !== null && pubKey !== undefined) {
-            console.log(encryptedPrivKeyAndIV)
+            //console.log(encryptedPrivKeyAndIV)
 
             const parsedEncryptedPrivKeyAndIV = JSON.parse(encryptedPrivKeyAndIV)
 
@@ -42,21 +42,21 @@ export const getPublicAndPrivateKeys = async (
             const iv = new Uint8Array(parsedEncryptedPrivKeyAndIV.iv);
             const encryptedPrivKey = new Uint8Array(parsedEncryptedPrivKeyAndIV.encryptedContent);
 
-            console.log(iv, encryptedPrivKey)
+            //console.log(iv, encryptedPrivKey)
 
             const userDoc = await getDoc(doc(db, "users", userUID))
 
             const privKeyUnlocker = JSON.parse(userDoc.data()?.privateKeyUnlocker)
 
-            console.log(privKeyUnlocker)
+            //console.log(privKeyUnlocker)
 
             //priv key unlocker ready
 
             const result = await AES_Decrypt_JSON_Web_Key(privKeyUnlocker, iv, encryptedPrivKey) // says privKeyUnlocker is not of type cryptokey
             privateKey = JSON.parse(result)// this is the private key
 
-            console.log("privateKey", privateKey)
-            console.log("publicKey", pubKey)
+            //console.log("privateKey", privateKey)
+            //console.log("publicKey", pubKey)
 
 
         }
@@ -83,50 +83,69 @@ export const AES_Encrypt_Message = async (message: string, key: CryptoKey) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     console.log(iv)
 
+    const exportedKey = await window.crypto.subtle.exportKey("raw", key);
+    console.log("Derived Key:", new Uint8Array(exportedKey));
+
     const encrypted_content = await window.crypto.subtle.encrypt(
         { name: "AES-GCM", iv: iv },
         key,
         encoded_message,
     )
+    console.log("THIS IS THE ENCRYPTED CONTENT RIGHT AFTER window.crypto.subtle.encrypt() ===== ", encrypted_content)
 
-    console.log(encrypted_content)
+    const encrypted_content_uint8arr = new Uint8Array(encrypted_content)
 
-    const stringified_encrypted_content = JSON.stringify(new Uint8Array(encrypted_content))
+    console.log("THIS IS THE ENCRYPTED CONTENT RIGHT AFTER window.crypto.subtle.encrypt() ===== ", encrypted_content_uint8arr)
 
-    console.log(stringified_encrypted_content)
+    console.log(encrypted_content_uint8arr)
 
     return {
-        iv: iv,
-        encrypted_content: stringified_encrypted_content,
+        iv: base64_encode_data(iv),
+        encrypted_content: base64_encode_data(encrypted_content_uint8arr),
     }
 
 }
 
-export const AES_Decrypt_Message = async (encrypted_message: string, iv: Uint8Array, key: CryptoKey) => {
+export const AES_Decrypt_Message = async (encrypted_message: string, iv: string, key: CryptoKey) => {
 
     console.log(key)
     console.log(iv)
 
-    console.log(encrypted_message)
+    try {
 
-    const encrypted_message_uint8_arr = JSON.parse(encrypted_message)
 
-    console.log("encrypted_message_uint8_arr", encrypted_message_uint8_arr)
+        const decrypted_content = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: base64_decode_data(iv) },
+            key,
+            base64_decode_data(encrypted_message)
+        );
 
-    const encrypted_message_arr_buff = encrypted_message_uint8_arr.buffer
+        // Decode the decrypted content
+        const decoded_content = new TextDecoder().decode(decrypted_content);
+        return decoded_content;
+    } catch (err) {
+        console.error("Decryption failed:", err);
+        throw err; // Optionally re-throw the error
+    }
+}
 
-    console.log("encrypted_message_arr_buff", encrypted_message_arr_buff)
 
-    const decrypted_content = await window.crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        encrypted_message_arr_buff,
-    )
+// Encode to Base64
 
-    console.log(decrypted_content)
+export const base64_encode_data = (originalArray: Uint8Array) => {
+    const binaryString = String.fromCharCode(...originalArray);
+    const base64String = btoa(binaryString);
+    console.log('Base64:', base64String); // Outputs: "SGVsbG8="
+    return base64String
+}
 
-    const decoded_content = new TextDecoder().decode(decrypted_content)
+// Decode back from Base64
 
-    return decoded_content
-
+export const base64_decode_data = (base64String: string) => {
+    const decodedBinaryString = atob(base64String);
+    const decodedArray = new Uint8Array(decodedBinaryString.length);
+    for (let i = 0; i < decodedBinaryString.length; i++) {
+        decodedArray[i] = decodedBinaryString.charCodeAt(i);
+    }
+    return decodedArray
 }
