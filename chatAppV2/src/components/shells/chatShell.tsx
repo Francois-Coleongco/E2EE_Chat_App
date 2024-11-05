@@ -13,6 +13,8 @@ function ChatShell() {
     const messagesCollection = collection(db, "privateChats/" + chatID + "/messages")
     const [messageBuffer, setMessageBuffer] = useState<string>("")
 
+    const [chat_messages, setMessages] = useState<string[]>()
+
     const [userUID, setUserUID] = useState<string>("")
     const [friendUID, setFriendUID] = useState<string>("")
 
@@ -57,18 +59,22 @@ function ChatShell() {
     }
 
 
+    useEffect(() => {
+        console.log("THESE ARE THE MESSAGES", chat_messages)
+
+    }, [chat_messages])
 
 
     const sendMessageHandler = async (e: React.FormEvent) => {
         e.preventDefault()
-        // for now just 
-        //console.log(messageBuffer)
 
         //console.log(symKey)
         if (symKey !== undefined) {
             await AES_Encrypt_Message(messageBuffer, symKey).then((encrypted_message) => {
                 //console.log(encrypted_message)
                 sendMessage(messagesCollection, JSON.stringify(encrypted_message), userUID, friendUID)
+
+                setMessageBuffer("")
             })
         }
 
@@ -96,11 +102,18 @@ function ChatShell() {
         //console.log(userUID)
         //console.log(userUID)
         //console.log(chatID)
+        const fetch_messages = async () => {
+            if (chatID !== undefined) {
+                const data = await getMessages(chatID, messagesCollection, userUID, symKey)
 
-        if (chatID !== undefined) {
-            getMessages(chatID, messagesCollection, userUID, symKey);
+                OWIEGJOEWGJ THIS IS  T PRINTING console.log(data)
+
+            }
+
+            getChatRoom()
         }
-        getChatRoom()
+
+        fetch_messages()
 
     }, [loadingKeys])
 
@@ -128,12 +141,16 @@ function ChatShell() {
         <>
             <h1>Chat chatID</h1>
 
-            <div>chat messages insert array of messages here</div>
+            <div>
 
-            <form onSubmit={sendMessageHandler}>
+
+            </div>
+
+            <form onSubmit={sendMessageHandler} className="fixed bottom-0 left-0 w-full bg-black p-4 shadow-md">
                 <input placeholder="message" value={messageBuffer} onChange={(e) => setMessageBuffer(e.target.value)} />
-                <input type="submit" />
-            </form>
+
+                <button className="m-4 bg-white hover:bg-gray-100 text-gray-800 font-semibold py-0 px-4 border border-gray-400 rounded shadow">send</button>
+            </form >
 
             <p>
             </p>

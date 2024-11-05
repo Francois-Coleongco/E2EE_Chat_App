@@ -164,61 +164,58 @@ const SignUp = () => {
     }, []); // userUID is not set here, its set in signup function
 
 
+    if (baking === true) {
+        return (
+            <h1>account is baking, please wait</h1>
+        )
+    }
+    else if (baking === false) {
+        return (
+            <h1>
+                proceed to <a href="dashboard">dashboard</a>
+            </h1>
+        )
+    }
 
-    return (
-        <>
-            {
-                baking !== null && (
-                    <>
-                        {
-                            baking !== true && (
-                                <p>account created! proceed to <a href="dashboard">dashboard</a></p>
-                            )
+    else {
+
+        return (
+            <>
+                <form onSubmit={signUpFirebase}>
+                    <h1>Sign Up</h1>
+                    <input
+                        name="email"
+                        placeholder="Email"
+                        required
+                        onChange={(e) =>
+                            setEmail(DOMPurify.sanitize(e.target.value))
                         }
-
-                        {
-                            baking === true && (
-                                <p>account is baking... please wait</p>
-                            )
+                    />
+                    <br />
+                    <br />
+                    <input
+                        name="password"
+                        placeholder="Password"
+                        type="password"
+                        required
+                        onChange={(e) =>
+                            setPassword(DOMPurify.sanitize(e.target.value))
                         }
-                    </>
-
-                )
-            }
-            <form onSubmit={signUpFirebase}>
-                <h1>Sign Up</h1>
-                <input
-                    name="email"
-                    placeholder="Email"
-                    required
-                    onChange={(e) =>
-                        setEmail(DOMPurify.sanitize(e.target.value))
-                    }
-                />
-                <br />
-                <br />
-                <input
-                    name="password"
-                    placeholder="Password"
-                    type="password"
-                    required
-                    onChange={(e) =>
-                        setPassword(DOMPurify.sanitize(e.target.value))
-                    }
-                />
-                <br />
-                <button type="submit">click to sign up</button>
-            </form>
+                    />
+                    <br />
+                    <button type="submit">click to sign up</button>
+                </form>
 
 
-            <h2>your private key download will appear here:</h2>
-            <a href={privateKeyLink} download={"privKey.json"}>here</a>
+                <h2>your private key download will appear here:</h2>
+                <a href={privateKeyLink} download={"privKey.json"}>here</a>
 
-            <p>
-                already have an account? log in <a href="/login">here</a>!
-            </p>
-        </>
-    );
+                <p>
+                    already have an account? log in <a href="/login">here</a>!
+                </p>
+            </>
+        );
+    }
 }
 
 export default SignUp;

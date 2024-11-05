@@ -17,64 +17,43 @@ export const sendMessage = async (
 }
 
 
-export const getMessages = (
+export const getMessages = async (
     chatID: string | undefined,
     messagesCollection: CollectionReference,
     userUID: string,
     key: CryptoKey | undefined,
 ) => {
 
+    let data: string[] = []
+
     if (chatID !== undefined) {
 
-        // get privchatdocument in privChatsCollection
-        // get documents in the privchatdocument
-
-        // using privChatDocRef, get the privChatMessages
-        //
-        //console.log(chatID)
         const q = query(messagesCollection, where("readers", "array-contains", userUID))
-        //console.log(q)
-        //console.log(userUID)
 
-        const unsubscribe_message_snapshot = onSnapshot(q, (QuerySnap: QuerySnapshot) => {
+        onSnapshot(q, async (QuerySnap: QuerySnapshot) => {
+            const promises: Promise<void>[] = [];
 
+            QuerySnap.forEach((doc: DocumentSnapshot) => {
+                const promise = (async () => {
+                    const iv = JSON.parse(doc.data()?.message).iv;
+                    const content = JSON.parse(doc.data()?.message).encrypted_content;
 
-            const messages: string[] = []
-
-            QuerySnap.forEach(
-                (doc: DocumentSnapshot) => {
-                    //console.log(doc.data()) // this is the message
-                    //console.log(key)
-                    const iv = JSON.parse(doc.data()?.message).iv
-                    //console.log(iv)
-                    const content = JSON.parse(doc.data()?.message).encrypted_content
-                    //console.log(content)
                     if (key !== undefined) {
-                        //console.log("hit here")
-                        AES_Decrypt_Message(content, iv, key).then((message) => {
-                            console.log("should show message")
-                            console.log(message)
-                        }).catch((err) => {
-                            console.log(err)
-                        }
-                        )
-                        //console.log("test")
+                        const message = await AES_Decrypt_Message(content, iv, key);
+                        console.log(message);
+                        data.push(message);
+                        console.log("populating data", data);
                     }
-                    messages.push(JSON.stringify(doc.data()))
-                }
-            )
+                })();
 
-        }, (err: Error) => {
-            //console.log(err)
-        })
+                promises.push(promise);
+            });
 
+            await Promise.all(promises);
 
-        return unsubscribe_message_snapshot
+            console.log("messages processed:", data);
 
+            return data
+        });
     }
-
-    else {
-        //console.log("WHOOPS chatID is somehow undefined...");
-    }
-
 }
