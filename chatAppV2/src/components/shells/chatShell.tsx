@@ -1,9 +1,9 @@
-import { getFirestore, doc, collection, getDoc } from "firebase/firestore";
+import { getFirestore, doc, collection, getDoc, onSnapshot, DocumentSnapshot, QuerySnapshot, where, query, DocumentData } from "firebase/firestore";
 import { app, auth } from "../../firebase";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { getPublicAndPrivateKeys, AES_Encrypt_Message } from "../crypto_funcs/crypto_msgs";
+import { getPublicAndPrivateKeys, AES_Encrypt_Message, AES_Decrypt_Message } from "../crypto_funcs/crypto_msgs";
 import { getMessages, sendMessage } from "../msg_utils";
 const db = getFirestore(app);
 
@@ -13,7 +13,7 @@ function ChatShell() {
     const messagesCollection = collection(db, "privateChats/" + chatID + "/messages")
     const [messageBuffer, setMessageBuffer] = useState<string>("")
 
-    const [chat_messages, setMessages] = useState<string[]>()
+    const [chat_messages, setMessages] = useState<DocumentData[]>()
 
     const [userUID, setUserUID] = useState<string>("")
     const [friendUID, setFriendUID] = useState<string>("")
@@ -104,9 +104,19 @@ function ChatShell() {
         //console.log(chatID)
         const fetch_messages = async () => {
             if (chatID !== undefined) {
-                const data = await getMessages(chatID, messagesCollection, userUID, symKey)
+                const data: string[] = []
+                const q = query(messagesCollection, where("readers", "array-contains", userUID))
 
-                OWIEGJOEWGJ THIS IS  T PRINTING console.log(data)
+                onSnapshot(q, (QuerySnap: QuerySnapshot) => {
+                    const data: DocumentData[] = []
+                    QuerySnap.forEach((doc) => {
+                        console.log(doc.data())
+                        data.push(doc.data())
+                    })
+                    setMessages(data)
+                })
+
+                console.log("messages processed:", data);
 
             }
 
