@@ -1,11 +1,13 @@
 import { getFirestore, doc, collection, getDoc, onSnapshot, DocumentSnapshot, QuerySnapshot, where, query, DocumentData, orderBy } from "firebase/firestore";
 import { app, auth } from "../../firebase";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { getPublicAndPrivateKeys, AES_Encrypt_Message, AES_Decrypt_Message } from "../crypto_funcs/crypto_msgs";
 import { getMessages, sendMessage } from "../msg_utils";
 const db = getFirestore(app);
+import { useScrollPosition } from 'react-use-scroll-position';
+
 
 function ChatShell() {
 
@@ -135,6 +137,7 @@ function ChatShell() {
     const decrypt_messages = (messages: DocumentData[]) => {
 
         messages.forEach((element) => {
+			console.log("this is sender", element.sender)
 
             const iv = JSON.parse(element.message).iv
             const content = JSON.parse(element.message).encrypted_content
@@ -151,6 +154,27 @@ function ChatShell() {
         })
     }
 
+	const chat_feed = useRef(null)
+	const [height, setHeight] = useState(0);  // State to store the height
+
+	  const updateHeight = () => {
+		if (chat_feed.current) {
+		  setHeight(chat_feed.current.clientHeight);  // Get the height of the div
+		}
+	  };
+
+    // focus on getting the messages sent first then add the key derivation then the encryption
+const messagesEndRef = useRef(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ })
+  }
+
+  const isAtBottom = () => {
+	  console.log(messagesEndRef.current?.scrollTop)
+  }
+
+	const {x, y} = useScrollPosition();
     useEffect(() => {
         //console.log(friendRequestsID)
         const crypto_key = getPublicAndPrivateKeys(friendRequestsID, userUID, db)
@@ -160,43 +184,53 @@ function ChatShell() {
             setSymKey(key)
             setLoadingKeys(false)
         })
+
     }, [friendRequestsID])
 
 
     useEffect(() => {
         console.log(chat_messages);  // Logs the state after it updates
+		updateHeight()
     }, [chat_messages]);  // This will run every time chat_messages is updated
-
-
-    // focus on getting the messages sent first then add the key derivation then the encryption
+  
+  useEffect(() => {
+	  if (y == height) {
+		  scrollToBottom()
+	  }
+  }, [y])
 
     if (loadingKeys === true) {
         return <p>loading keys</p>
     }
 
+
+
     return (
         <>
-            <h1>Chat chatID</h1>
+            <h1 className="fixed top-0 h-10 left-0 w-full bg-gray-100 p-4 shadow-md">Chat ID: {chatID}</h1>
 
-            <div>
+<div className="flex flex-col p-4 pb-16">
+    <div className="flex-1 overflow-y-auto h-32" ref={chat_feed}>
+        {chat_messages?.map((item, index) => (
+            <div key={index} className="flex items-start" >
+                <div className="bg-blue-500 text-white p-3 rounded-lg max-w-xs">
+                    <h4>{item}</h4>
+                </div>
+            </div>
+        ))}
+		<div ref={messagesEndRef}></div>
+    </div>
 
-                {chat_messages?.map((item, index) => (
-                    <div key={index}>
-                        <h4>{item}</h4>
-                    </div>
-                )
-
-                )}
-
-
-            </div >
-
-            <form onSubmit={sendMessageHandler} className="fixed bottom-0 left-0 w-full bg-black p-4 shadow-md">
-                <input placeholder="message" value={messageBuffer} onChange={(e) => setMessageBuffer(e.target.value)} />
-
-                <button className="m-4 bg-white hover:bg-gray-100 text-gray-800 font-semibold py-0 px-4 border border-gray-400 rounded shadow">send</button>
-            </form >
-
+<p>Scroll Position: {x, y}</p>
+    <form onSubmit={sendMessageHandler} className="fixed bottom-0 h-16 left-0 w-full bg-gray-100 p-4 shadow-md">
+        <input
+            placeholder="Type a message"
+            value={messageBuffer}
+            onChange={(e) => setMessageBuffer(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded"
+        />
+    </form>
+</div>
             <p>
             </p>
         </>
