@@ -11,13 +11,14 @@ import { useScrollPosition } from 'react-use-scroll-position';
 
 function ChatShell() {
 
+
 	const chatID: string | undefined = useParams()["chatID"]
 	const messagesCollection = collection(db, "privateChats/" + chatID + "/messages")
 	const [messageBuffer, setMessageBuffer] = useState<string>("")
 
-	const [encrypted_chat_messages, set_encrypted_messages] = useState<DocumentData[]>([])
+	const [encrypted_chat_messages, set_encrypted_messages] = useState<[string, DocumentData][]>([])
 
-	const [chat_messages, set_messages] = useState<[string, string][]>([])
+	const [chat_messages, set_messages] = useState<[string, string, string][]>([])
 
 	const [userUID, setUserUID] = useState<string>("")
 	const [friendUID, setFriendUID] = useState<string>("")
@@ -27,6 +28,7 @@ function ChatShell() {
 	const [symKey, setSymKey] = useState<CryptoKey>()
 
 	const [loadingKeys, setLoadingKeys] = useState(true)
+	const [loadingChat, setLoadingChat] = useState(true)
 
 	const getChatRoom = async () => {
 
@@ -64,7 +66,6 @@ function ChatShell() {
 
 
 	useEffect(() => {
-		console.log("THESE ARE THE MESSAGES", encrypted_chat_messages)
 		if (encrypted_chat_messages !== undefined) {
 			decrypt_messages(encrypted_chat_messages)
 		}
@@ -115,15 +116,13 @@ function ChatShell() {
 
 				onSnapshot(q, (QuerySnap: QuerySnapshot) => {
 					set_messages([])
-					const data: DocumentData[] = []
+					const data: [string, DocumentData][] = []
 					QuerySnap.forEach((doc) => {
-						console.log(doc.data())
-						data.push(doc.data())
+						data.push([doc.id, doc.data()])
 					})
 					set_encrypted_messages(data)
 				})
 
-				console.log("messages processed:", data);
 
 			}
 
@@ -134,19 +133,20 @@ function ChatShell() {
 
 	}, [loadingKeys])
 
-	const decrypt_messages = (messages: DocumentData[]) => {
+	const decrypt_messages = (messages: [string, DocumentData][]) => {
 
 		messages.forEach((element) => {
 
-			const iv = JSON.parse(element.message).iv
-			const content = JSON.parse(element.message).encrypted_content
+			const id = element[0]
+			const docDat = element[1]
+
+			const iv = JSON.parse(docDat.message).iv
+			const content = JSON.parse(docDat.message).encrypted_content
 			if (symKey !== undefined) {
 				AES_Decrypt_Message(content, iv, symKey).then((message) => {
-					console.log(message)
-					console.log(element.time_sent)
-					console.log(element.sender)
-					const sender = element.sender
-					set_messages(prevMessages => [...prevMessages, [sender, message]]);
+					const sender = docDat.sender
+					set_messages(prevMessages => [...prevMessages, [id, sender, message]]);
+					setLoadingChat(false)
 				}).catch((err) => {
 					console.log(err)
 				}
@@ -157,7 +157,7 @@ function ChatShell() {
 
 	const chat_feed = useRef(null)
 	const [height, setHeight] = useState(0);  // State to store the height
-
+	const [isUserAtBottom, setIsUserAtBottom] = useState(true);
 	const updateHeight = () => {
 		if (chat_feed.current) {
 			setHeight(chat_feed.current.clientHeight);  // Get the height of the div
@@ -187,42 +187,58 @@ function ChatShell() {
 
 
 	useEffect(() => {
-		console.log(chat_messages);  // Logs the state after it updates
 		updateHeight()
 	}, [chat_messages]);  // This will run every time chat_messages is updated
 
+	const isAtBottom = () => {
+		if (chat_feed.current) {
+			const scrollTop = chat_feed.current.scrollTop;
+			const scrollHeight = chat_feed.current.scrollHeight;
+			const clientHeight = chat_feed.current.clientHeight;
+			return scrollTop + clientHeight >= scrollHeight - 10;  // Allow a small buffer for precision
+		}
+		return false;
+	};
+
 	useEffect(() => {
-		if (y === height) {
-			console.log("invoked", y, height)
-			scrollToBottom()
+		if (chat_feed.current) {
+			const scrollTop = chat_feed.current.scrollTop;
+			const scrollHeight = chat_feed.current.scrollHeight;
+			const clientHeight = chat_feed.current.clientHeight;
+
+				console.log(scrollTop, clientHeight, scrollHeight)
+			// If the user is manually scrolling, they are not at the bottom
+			if (scrollTop + clientHeight < scrollHeight - 10) {
+				setIsUserAtBottom(false);
+			} else {
+				setIsUserAtBottom(true);
+			}
 		}
-		else {
-			console.log("WHENNN")
+	}, [y]);
+
+	useEffect(() => {
+		// Scroll to the bottom only if the user is at the bottom of the chat
+		if (isUserAtBottom && chat_messages.length > 0) {
+			scrollToBottom();
 		}
-	}, [y])
-
-	if (loadingKeys === true) {
-		return <p>loading keys</p>
-	}
-
-
+	}, [chat_messages]);
 
 	return (
 		<>
 			<h1 className="fixed top-0 h-10 left-0 w-full bg-gray-100 p-4 shadow-md">Chat ID: {chatID} scroll y: {y} heihgt: {height}</h1>
 
-			<div className="flex flex-col p-4 pb-16">
-				<div className="flex-1 overflow-y-auto h-32" ref={chat_feed}>
-					{chat_messages?.map((item, index) => (
-						<div key={index} className="flex items-start" >
-							{item[0] == userUID &&
-								<div className="bg-blue-500 text-white p-3 rounded-lg max-w-xs">
-									<h4>{item}</h4>
+			<div id="chat_feed" className="flex flex-col p-4 pb-16"  ref={chat_feed}>
+				<div className="flex-1  h-32">
+					{chat_messages?.map((item) => (
+						<div key={item[0]} className="flex items-start mb-16" >
+							{item[1] == userUID &&
+								<div className="bg-black text-white p-3 rounded-lg max-w-xs">
+									<h4>{item[2]}</h4>
 								</div>
 							}
-							{item[0] == friendUID &&
-								<div className="bg-red-500 text-white p-3 rounded-lg max-w-xs">
-									<h4>{item}</h4>
+							{item[1] == friendUID &&
+								<div className="bg-gray-700 text-white p-3 rounded-lg max-w-xs absolute right-0">
+									<h4>{item[2]}</h4>
 								</div>
 							}
 						</div>

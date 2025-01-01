@@ -78,26 +78,17 @@ export const AES_Encrypt_Message = async (message: string, key: CryptoKey) => {
     const encoded_message = new TextEncoder().encode(message)
 
 
-    console.log(encoded_message)
-    console.log(key)
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    console.log(iv)
 
     const exportedKey = await window.crypto.subtle.exportKey("raw", key);
-    console.log("Derived Key:", new Uint8Array(exportedKey));
 
     const encrypted_content = await window.crypto.subtle.encrypt(
         { name: "AES-GCM", iv: iv },
         key,
         encoded_message,
     )
-    console.log("THIS IS THE ENCRYPTED CONTENT RIGHT AFTER window.crypto.subtle.encrypt() ===== ", encrypted_content)
 
     const encrypted_content_uint8arr = new Uint8Array(encrypted_content)
-
-    console.log("THIS IS THE ENCRYPTED CONTENT RIGHT AFTER window.crypto.subtle.encrypt() ===== ", encrypted_content_uint8arr)
-
-    console.log(encrypted_content_uint8arr)
 
     return {
         iv: base64_encode_data(iv),
@@ -107,9 +98,6 @@ export const AES_Encrypt_Message = async (message: string, key: CryptoKey) => {
 }
 
 export const AES_Decrypt_Message = async (encrypted_message: string, iv: string, key: CryptoKey) => {
-
-    console.log(key)
-    console.log(iv)
 
     try {
 
@@ -135,7 +123,6 @@ export const AES_Decrypt_Message = async (encrypted_message: string, iv: string,
 export const base64_encode_data = (originalArray: Uint8Array) => {
     const binaryString = String.fromCharCode(...originalArray);
     const base64String = btoa(binaryString);
-    console.log('Base64:', base64String); // Outputs: "SGVsbG8="
     return base64String
 }
 

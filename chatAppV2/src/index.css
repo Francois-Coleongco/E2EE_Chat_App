@@ -3,5 +3,12 @@
 @tailwind utilities;
 
 body {
+	overflow: hidden;
     background-color: #f2f2f2;
+}
+
+#chat_feed {
+  overflow-y: scroll;         /* Enable vertical scrolling */
+  height: calc(100vh - 3rem - 4rem);  /* Set the height considering header and footer */
+  max-height: 100%;         /* Ensure the container can expand fully */
 }
